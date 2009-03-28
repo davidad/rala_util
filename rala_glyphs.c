@@ -1,4 +1,4 @@
-#include "ala_glyphs.h"
+#include "rala_glyphs.h"
 
 void xor_gate_glyph(cairo_t *cr) {
 	static cairo_pattern_t *pat = 0;
