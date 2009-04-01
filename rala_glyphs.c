@@ -4,7 +4,7 @@ void xor_gate_glyph(cairo_t *cr) {
 	static cairo_pattern_t *pat = 0;
 
 	cairo_save(cr);
-	cairo_translate(cr,0.04,0);
+	cairo_translate(cr,0.14,0.1);
 	cairo_scale(cr,0.8,0.8);
 
 	if(pat == 0) {
@@ -47,6 +47,7 @@ void or_gate_glyph(cairo_t *cr) {
 	static cairo_pattern_t *pat = 0;
 
 	cairo_save(cr);
+	cairo_translate(cr,0.1,0.1);
 	cairo_scale(cr,0.8,0.8);
 
 	if(pat == 0) {
@@ -83,6 +84,7 @@ void and_gate_glyph(cairo_t *cr) {
 	static cairo_pattern_t *pat = 0;
 
 	cairo_save(cr);
+	cairo_translate(cr,0.1,0.1);
 	cairo_scale(cr,0.8,0.8);
 
 	if(pat == 0) {
@@ -114,6 +116,7 @@ void nand_gate_glyph(cairo_t *cr) {
 	static cairo_pattern_t *pat = 0;
 
 	cairo_save(cr);
+	cairo_translate(cr,0.1,0.1);
 	cairo_scale(cr,0.68,0.8);
 
 	if(pat == 0) {
@@ -149,6 +152,7 @@ void stem_cell_glyph(cairo_t *cr) {
 	static cairo_pattern_t *pat = 0;
 
 	cairo_save(cr);
+	cairo_translate(cr,0.1,0.1);
 	cairo_scale(cr,0.8,0.8);
 
 	if(pat == 0) {
@@ -180,6 +184,7 @@ void crossover_cell_glyph(cairo_t *cr) {
 	static cairo_pattern_t *pat = 0;
 
 	cairo_save(cr);
+	cairo_translate(cr,0.1,0.1);
 	cairo_scale(cr,0.8,0.8);
 
 	if(pat == 0) {
@@ -223,6 +228,7 @@ void wire_cell_glyph(cairo_t *cr) {
 	static cairo_pattern_t *pat = 0;
 
 	cairo_save(cr);
+	cairo_translate(cr,0.1,0.1);
 	cairo_scale(cr,0.8,0.8);
 
 	if(pat == 0) {
@@ -251,6 +257,7 @@ void delete_cell_glyph(cairo_t *cr, int rotation) {
 	static cairo_pattern_t *pat = 0;
 
 	cairo_save(cr);
+	cairo_translate(cr,0.1,0.1);
 	cairo_scale(cr,0.8,0.8);
 
 	if(pat == 0) {
@@ -286,6 +293,7 @@ void copy_cell_glyph(cairo_t *cr, int rotation) {
 	}
 
 	cairo_save(cr);
+	cairo_translate(cr,0.1,0.1);
 	cairo_scale(cr,0.8,0.8);
 
 	cairo_new_path(cr);
@@ -356,9 +364,10 @@ void arrow_0_glyph(cairo_t *cr) {
 	}
 
 	if(pat_out == 0) {
-		pat_out = cairo_pattern_create_radial (0, 0, ARROW_BODY_RADIUS*(0.7), 0.03, 0, 0.3);
-		cairo_pattern_add_color_stop_rgba(pat_out, 0, 0.3, 0.3, 1.0, 0.6);
-		cairo_pattern_add_color_stop_rgba(pat_out, 1, 0.1, 0.1, 1.0, 0.0);
+		pat_out = cairo_pattern_create_radial (-0.04, 0, ARROW_BODY_RADIUS*(0.7), 0.03, 0, 0.3);
+		cairo_pattern_add_color_stop_rgba(pat_out, 0, 0.3, 0.3, 1.0, 0.3);
+		cairo_pattern_add_color_stop_rgba(pat_out, 0.45, 0.2, 0.2, 0.8, 0.08);
+		cairo_pattern_add_color_stop_rgba(pat_out, 1, 0.0, 0.0, 0.3, 0.0);
 	}
 
 	cairo_save(cr);
@@ -372,9 +381,10 @@ void arrow_0_glyph(cairo_t *cr) {
 	cairo_close_path(cr);
 
 	cairo_save(cr);
-	cairo_translate(cr,ARROW_HEAD_START-0.2, 0.25);
-	cairo_scale(cr,1.7,0.9);
+	cairo_translate(cr,ARROW_HEAD_START-0.16, 0.25);
+	cairo_scale(cr,1.6,0.9);
 	cairo_set_source(cr,pat_out);
+	cairo_fill_preserve(cr);
 	cairo_fill(cr);
 	cairo_restore(cr);
 
@@ -411,8 +421,9 @@ void arrow_1_glyph(cairo_t *cr) {
 
 	if(pat_out == 0) {
 		pat_out = cairo_pattern_create_radial (0, 0, ARROW_BODY_RADIUS, 0.03, 0, 0.3);
-		cairo_pattern_add_color_stop_rgba(pat_out, 0, 1.0, 0.3, 0.3, 0.6);
-		cairo_pattern_add_color_stop_rgba(pat_out, 1, 1.0, 0.1, 0.1, 0.0);
+		cairo_pattern_add_color_stop_rgba(pat_out, 0, 1.0, 0.3, 0.3, 0.3);
+		cairo_pattern_add_color_stop_rgba(pat_out, 0.45, 0.8, 0.2, 0.2, 0.08);
+		cairo_pattern_add_color_stop_rgba(pat_out, 1, 0.3, 0.0, 0.0, 0.0);
 	}
 
 	cairo_save(cr);
@@ -427,8 +438,9 @@ void arrow_1_glyph(cairo_t *cr) {
 
 	cairo_save(cr);
 	cairo_translate(cr,ARROW_HEAD_START-0.1, 0.25);
-	cairo_scale(cr,1.7,0.9);
+	cairo_scale(cr,1.6,0.9);
 	cairo_set_source(cr,pat_out);
+	cairo_fill_preserve(cr);
 	cairo_fill(cr);
 	cairo_restore(cr);
 
@@ -450,5 +462,48 @@ void arrow_1_glyph(cairo_t *cr) {
 	cairo_clip_preserve(cr);
 	cairo_stroke(cr);
 
+	cairo_restore(cr);
+}
+
+void blank_cell(cairo_t *cr) {
+	cairo_save(cr);
+	cairo_new_path(cr);
+	cairo_move_to(cr,-1.0,0.0);
+	cairo_line_to(cr,-1.0,0.5);
+	cairo_line_to(cr,0.0,0.5);
+	cairo_line_to(cr,0.0,2.0);
+	cairo_line_to(cr,0.5,2.0);
+	cairo_line_to(cr,0.5,1.0);
+	cairo_line_to(cr,2.0,1.0);
+	cairo_line_to(cr,2.0,0.5);
+	cairo_line_to(cr,1.0,0.5);
+	cairo_line_to(cr,1.0,-1.0);
+	cairo_line_to(cr,0.5,-1.0);
+	cairo_line_to(cr,0.5,0.0);
+	cairo_close_path(cr);
+
+	cairo_set_source_rgb(cr,1,1,1);
+	cairo_fill(cr);
+
+	cairo_translate(cr,0.5,0.5);
+	cairo_save(cr);
+	cairo_translate(cr,-1.4,-0.4);
+	arrow_none_glyph(cr);
+	cairo_restore(cr);
+	cairo_save(cr);
+	cairo_rotate(cr,3*M_PI/2);
+	cairo_translate(cr,-1.4,-0.4);
+	arrow_none_glyph(cr);
+	cairo_restore(cr);
+	cairo_save(cr);
+	cairo_rotate(cr,M_PI);
+	cairo_translate(cr,-1.4,-0.4);
+	arrow_none_glyph(cr);
+	cairo_restore(cr);
+	cairo_save(cr);
+	cairo_rotate(cr,M_PI/2);
+	cairo_translate(cr,-1.4,-0.4);
+	arrow_none_glyph(cr);
+	cairo_restore(cr);
 	cairo_restore(cr);
 }

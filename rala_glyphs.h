@@ -27,3 +27,5 @@ void arrow_none_glyph(cairo_t *cr);
 void arrow_x_glyph(cairo_t *cr);
 void arrow_0_glyph(cairo_t *cr);
 void arrow_1_glyph(cairo_t *cr);
+
+void blank_cell(cairo_t *cr);
