@@ -7,132 +7,263 @@ void update_screen(cairo_t *cr) {
 	SDL_PushEvent(&event);
 }
 
+void cairo_setup_W(cairo_t* cr) {
+	cairo_translate(cr,-0.9,0.1);
+}
+
+void cairo_setup_S(cairo_t* cr) {
+	cairo_translate(cr,0.5,0.5);
+	cairo_rotate(cr,M_PI/2);
+	cairo_translate(cr,-1.4,-0.4);
+}
+
+void cairo_setup_E(cairo_t* cr) {
+	cairo_translate(cr,0.5,0.5);
+	cairo_rotate(cr,M_PI);
+	cairo_translate(cr,-1.4,-0.4);
+}
+
+void cairo_setup_N(cairo_t* cr) {
+	cairo_translate(cr,0.5,0.5);
+	cairo_rotate(cr,3*M_PI/2);
+	cairo_translate(cr,-1.4,-0.4);
+}
+
 int next_command_char(char c, cairo_t* cr) {
 	static enum {
 		NORMAL,
 		ARROW,
 		X_COORD,
-		Y_COORD
-	} state_type = NORMAL;
-	static int x_coord, y_coord;
+		Y_COORD,
+		COMMENT,
+		AFFINE
+	} state = NORMAL;
+	static int x_coord, y_coord, x_coord_sign, y_coord_sign;
+	static affine_stack_t* transforms = NULL;
+	if(transforms == NULL) transforms = affine_init();
 
-	switch(state_type) {
+	switch(state) {
+		case COMMENT:
+			if(c == '\n') state = NORMAL;
+			break;
 		case NORMAL:
 			switch(c) {
+				case '#':
+					state = COMMENT;
+					break;
+				case '~':
+					state = AFFINE;
+					break;
 				case '[':
-					cairo_save(cr);
+					affine_save(&transforms);
 					break;
 				case ']':
-					cairo_restore(cr);
+					if(affine_restore(&transforms)) {
+						fprintf(stderr, "No transform to pop!\n");
+					}
 					break;
 				case 'n':
+					cairo_save(cr);
+					cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
 					blank_cell(cr);
 					nand_gate_glyph(cr);
 					update_screen(cr);
+					cairo_restore(cr);
 					break;
 				case 'a':
+					cairo_save(cr);
+					cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
 					blank_cell(cr);
 					and_gate_glyph(cr);
 					update_screen(cr);
+					cairo_restore(cr);
 					break;
 				case 'o':
+					cairo_save(cr);
+					cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
 					blank_cell(cr);
 					or_gate_glyph(cr);
 					update_screen(cr);
+					cairo_restore(cr);
 					break;
 				case 'x':
+					cairo_save(cr);
+					cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
 					blank_cell(cr);
 					xor_gate_glyph(cr);
 					update_screen(cr);
+					cairo_restore(cr);
 					break;
 				case 'c':
+					cairo_save(cr);
+					cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
 					blank_cell(cr);
 					copy_cell_glyph(cr,0);
 					update_screen(cr);
+					cairo_restore(cr);
 					break;
 				case 'd':
+					cairo_save(cr);
+					cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
 					blank_cell(cr);
 					delete_cell_glyph(cr,0);
 					update_screen(cr);
+					cairo_restore(cr);
 					break;
 				case 'w':
+					cairo_save(cr);
+					cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
 					blank_cell(cr);
 					wire_cell_glyph(cr);
 					update_screen(cr);
+					cairo_restore(cr);
 					break;
 				case 'C':
+					cairo_save(cr);
+					cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
 					blank_cell(cr);
 					crossover_cell_glyph(cr);
 					update_screen(cr);
+					cairo_restore(cr);
 					break;
 				case 'W':
-					cairo_save(cr);
-					cairo_translate(cr,-0.9,0.1);
-					state_type = ARROW;
+					if(applyv_x(transforms->cur,-1,0)<0) {
+						cairo_save(cr);
+						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
+						cairo_setup_W(cr);
+					} else if(applyv_x(transforms->cur,-1,0)>0) {
+						cairo_save(cr);
+						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
+						cairo_setup_E(cr);
+					} else if(applyv_y(transforms->cur,-1,0)<0) {
+						cairo_save(cr);
+						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
+						cairo_setup_S(cr);
+					} else if(applyv_y(transforms->cur,-1,0)>0) {
+						cairo_save(cr);
+						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
+						cairo_setup_N(cr);
+					}
+					state = ARROW;
 					break;
 				case 'N':
-					cairo_save(cr);
-					cairo_translate(cr,0.5,0.5);
-					cairo_rotate(cr,3*M_PI/2);
-					cairo_translate(cr,-1.4,-0.4);
-					state_type = ARROW;
+					if(applyv_x(transforms->cur,0,1)<0) {
+						cairo_save(cr);
+						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
+						cairo_setup_W(cr);
+					} else if(applyv_x(transforms->cur,0,1)>0) {
+						cairo_save(cr);
+						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
+						cairo_setup_E(cr);
+					} else if(applyv_y(transforms->cur,0,1)<0) {
+						cairo_save(cr);
+						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
+						cairo_setup_S(cr);
+					} else if(applyv_y(transforms->cur,0,1)>0) {
+						cairo_save(cr);
+						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
+						cairo_setup_N(cr);
+					}
+					state = ARROW;
 					break;
 				case 'E':
-					cairo_save(cr);
-					cairo_translate(cr,0.5,0.5);
-					cairo_rotate(cr,M_PI);
-					cairo_translate(cr,-1.4,-0.4);
-					state_type = ARROW;
+					if(applyv_x(transforms->cur,1,0)<0) {
+						cairo_save(cr);
+						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
+						cairo_setup_W(cr);
+					} else if(applyv_x(transforms->cur,1,0)>0) {
+						cairo_save(cr);
+						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
+						cairo_setup_E(cr);
+					} else if(applyv_y(transforms->cur,1,0)<0) {
+						cairo_save(cr);
+						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
+						cairo_setup_S(cr);
+					} else if(applyv_y(transforms->cur,1,0)>0) {
+						cairo_save(cr);
+						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
+						cairo_setup_N(cr);
+					}
+					state = ARROW;
 					break;
 				case 'S':
-					cairo_save(cr);
-					cairo_translate(cr,0.5,0.5);
-					cairo_rotate(cr,M_PI/2);
-					cairo_translate(cr,-1.4,-0.4);
-					state_type = ARROW;
+					if(applyv_x(transforms->cur,0,-1)<0) {
+						cairo_save(cr);
+						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
+						cairo_setup_W(cr);
+					} else if(applyv_x(transforms->cur,0,-1)>0) {
+						cairo_save(cr);
+						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
+						cairo_setup_E(cr);
+					} else if(applyv_y(transforms->cur,0,-1)<0) {
+						cairo_save(cr);
+						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
+						cairo_setup_S(cr);
+					} else if(applyv_y(transforms->cur,0,-1)>0) {
+						cairo_save(cr);
+						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
+						cairo_setup_N(cr);
+					}
+					state = ARROW;
+					break;
+				case '-':
+					x_coord = 0;
+					x_coord_sign = -1;
+					state = X_COORD;
 					break;
 				case '0':
 					x_coord = 0;
-					state_type = X_COORD;
+					x_coord_sign = 1;
+					state = X_COORD;
 					break;
 				case '1':
 					x_coord = 1;
-					state_type = X_COORD;
+					x_coord_sign = 1;
+					state = X_COORD;
 					break;
 				case '2':
 					x_coord = 2;
-					state_type = X_COORD;
+					x_coord_sign = 1;
+					state = X_COORD;
 					break;
 				case '3':
 					x_coord = 3;
-					state_type = X_COORD;
+					x_coord_sign = 1;
+					state = X_COORD;
 					break;
 				case '4':
 					x_coord = 4;
-					state_type = X_COORD;
+					x_coord_sign = 1;
+					state = X_COORD;
 					break;
 				case '5':
 					x_coord = 5;
-					state_type = X_COORD;
+					x_coord_sign = 1;
+					state = X_COORD;
 					break;
 				case '6':
 					x_coord = 6;
-					state_type = X_COORD;
+					x_coord_sign = 1;
+					state = X_COORD;
 					break;
 				case '7':
 					x_coord = 7;
-					state_type = X_COORD;
+					x_coord_sign = 1;
+					state = X_COORD;
 					break;
 				case '8':
 					x_coord = 8;
-					state_type = X_COORD;
+					x_coord_sign = 1;
+					state = X_COORD;
 					break;
 				case '9':
 					x_coord = 9;
-					state_type = X_COORD;
+					x_coord_sign = 1;
+					state = X_COORD;
 					break;
 				case 13:
 				case 10:
+				case 32:
 					break;
 				default:
 					fprintf(stderr, "Invalid command %d\n", c);
@@ -159,7 +290,7 @@ int next_command_char(char c, cairo_t* cr) {
 					update_screen(cr);
 					break;
 			}
-			state_type = NORMAL;
+			state = NORMAL;
 			break;
 		case X_COORD:
 			x_coord *= 10;
@@ -194,9 +325,11 @@ int next_command_char(char c, cairo_t* cr) {
 					x_coord += 9;
 					break;
 				case ',':
-					state_type = Y_COORD;
+					state = Y_COORD;
 					x_coord /= 10;
+					x_coord *= x_coord_sign;
 					y_coord = 0;
+					y_coord_sign = 1;
 					break;
 				default:
 					fprintf(stderr, "Parse error while reading x coordinate\n");
@@ -207,6 +340,9 @@ int next_command_char(char c, cairo_t* cr) {
 		case Y_COORD:
 			y_coord *= 10;
 			switch(c) {
+				case '-':
+					y_coord_sign = -1;
+					break;
 				case '0':
 					break;
 				case '1':
@@ -238,12 +374,53 @@ int next_command_char(char c, cairo_t* cr) {
 					break;
 				case ';':
 					y_coord /= 10;
-					state_type = NORMAL;
-					cairo_translate(cr,x_coord*2,y_coord*2);
+					y_coord *= y_coord_sign;
+					state = NORMAL;
+					affine_transform(&transforms, affine_translate(x_coord*2,y_coord*2));
 					break;
 				default:
 					fprintf(stderr, "Parse error while reading y coordinate\n");
 					return 3;
+					break;
+			}
+			break;
+		case AFFINE:
+			switch(c) {
+				case '|':
+				case 'x':
+					affine_transform(&transforms, flip_x);
+					state=NORMAL;
+					break;
+				case '_':
+				case 'y':
+					affine_transform(&transforms, flip_y);
+					state=NORMAL;
+					break;
+				case '\'':
+				case 'n':
+					affine_transform(&transforms, rot90);
+					state=NORMAL;
+					break;
+				case '-':
+				case 'w':
+					affine_transform(&transforms, rot180);
+					state=NORMAL;
+					break;
+				case ',':
+				case 's':
+					affine_transform(&transforms, rot270);
+					state=NORMAL;
+					break;
+				case '\\':
+					affine_transform(&transforms, flip_neg_diag);
+					state=NORMAL;
+					break;
+				case '/':
+					affine_transform(&transforms, flip_pos_diag);
+					state=NORMAL;
+					break;
+				default:
+					fprintf(stderr, "Unknown affine transform\n");
 					break;
 			}
 			break;
