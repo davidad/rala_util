@@ -39,7 +39,8 @@ int next_command_char(char c, cairo_t* cr) {
 		Y_COORD,
 		COMMENT,
 		AFFINE,
-		COMMAND
+		COMMAND,
+		RANGE_0
 	} state = NORMAL;
 	static int x_coord, y_coord, x_coord_sign, y_coord_sign;
 	static affine_stack_t* transforms = NULL;
@@ -82,6 +83,9 @@ int next_command_char(char c, cairo_t* cr) {
 					if(affine_restore(&transforms)) {
 						fprintf(stderr, "No transform to pop!\n");
 					}
+					break;
+				case '[':
+					state = RANGE_0;
 					break;
 				case 'n':
 					cairo_save(cr);
@@ -283,11 +287,12 @@ int next_command_char(char c, cairo_t* cr) {
 					state = X_COORD;
 					break;
 				case 13:
+				case 9:
 				case 10:
 				case 32:
 					break;
 				default:
-					fprintf(stderr, "Invalid command %d\n", c);
+					fprintf(stderr, "Invalid command character %c\n", c);
 					return 1;
 					break;
 			}

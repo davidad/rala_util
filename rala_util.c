@@ -128,6 +128,7 @@ void sdl_event_loop(SDL_Surface **screen, SDL_Surface **canvas) {
 
 void print_help(char** argv) {
 	printf("Usage:\n\t%s [--blank=stem|hollow|none] [--to=sdl|png filename|ps filename|pdf filename|file filename|listen-on port|connect-to host port] [--from=file filename|listen-on port|connect-to host port]\n",argv[0]);
+	exit(0);
 }
 
 int main(int argc, char **argv) {
@@ -138,9 +139,6 @@ int main(int argc, char **argv) {
 	int to_port = 0;
 	int i = 1;
 	char* c;
-	if(argc <= 1) {
-		print_help(argv);
-	}
 	while(i < argc) {
 		if(!strcmp(argv[i], "--blank=stem")) {
 			blank_cell_style=STEM;
@@ -210,6 +208,9 @@ int main(int argc, char **argv) {
 			if(i+1>=argc) printf("no port specified\n");
 			from_port = atoi(argv[++i]);
 		}
+		else if(!strcmp(argv[i], "--help")) {
+			print_help(argv);
+		}
 		else if(c = strchr(argv[i], ':')) {
 			if(from_port == 0 && from_file == NULL) {
 				input=FROM_SOCKET;
@@ -238,6 +239,10 @@ int main(int argc, char **argv) {
 	if(output != TO_SDL) {
 		printf("sorry, this output method is not implemented. defaulting to SDL output.\n");
 		output = TO_SDL;
+	}
+	if(from_port == 0 && from_file == NULL) {
+		from_file = stdin;
+		input = FROM_FILE;
 	}
 	SDL_Surface *screen, *canvas;
 	if(input==FROM_SOCKET || output==TO_SOCKET) {

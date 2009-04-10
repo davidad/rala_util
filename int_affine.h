@@ -8,8 +8,14 @@ typedef struct {
 	int xy; int yy; int wy;
 } affine_t;
 
+struct affine_par {
+	affine_t cur;
+	struct affine_par* par_next;
+};
+
 struct affine_stack {
 	affine_t cur;
+	struct affine_par* par_next;
 	struct affine_stack* prev;
 };
 

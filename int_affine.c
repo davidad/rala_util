@@ -39,6 +39,7 @@ int applyv_y(affine_t t, int x, int y) {
 affine_stack_t* affine_init(void) {
 	affine_stack_t *p = malloc(sizeof(affine_stack_t));
 	p->prev = NULL;
+	p->par_next = NULL;
 	p->cur.xx = p->cur.yy = 1;
 	p->cur.xy = p->cur.yx = p->cur.wx = p->cur.wy = 0;
 	return p;
