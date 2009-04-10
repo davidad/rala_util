@@ -9,26 +9,27 @@ void update_screen(cairo_t *cr) {
 	}
 }
 
-void cairo_setup_W(cairo_t* cr) {
-	cairo_translate(cr,-0.9,0.1);
-}
-
-void cairo_setup_S(cairo_t* cr) {
-	cairo_translate(cr,0.5,0.5);
-	cairo_rotate(cr,M_PI/2);
-	cairo_translate(cr,-1.4,-0.4);
-}
-
-void cairo_setup_E(cairo_t* cr) {
-	cairo_translate(cr,0.5,0.5);
-	cairo_rotate(cr,M_PI);
-	cairo_translate(cr,-1.4,-0.4);
-}
-
-void cairo_setup_N(cairo_t* cr) {
-	cairo_translate(cr,0.5,0.5);
-	cairo_rotate(cr,3*M_PI/2);
-	cairo_translate(cr,-1.4,-0.4);
+void setup_arrow(cairo_t* cr, arrow_dir_t arrow_dir) {
+	switch(arrow_dir) {
+		case ARROW_DIR_W:
+			cairo_translate(cr,-0.9,0.1);
+			break;
+		case ARROW_DIR_S:
+			cairo_translate(cr,0.5,0.5);
+			cairo_rotate(cr,M_PI/2);
+			cairo_translate(cr,-1.4,-0.4);
+			break;
+		case ARROW_DIR_E:
+			cairo_translate(cr,0.5,0.5);
+			cairo_rotate(cr,M_PI);
+			cairo_translate(cr,-1.4,-0.4);
+			break;
+		case ARROW_DIR_N:
+			cairo_translate(cr,0.5,0.5);
+			cairo_rotate(cr,3*M_PI/2);
+			cairo_translate(cr,-1.4,-0.4);
+			break;
+	}
 }
 
 int next_command_char(char c, cairo_t* cr) {
@@ -40,13 +41,21 @@ int next_command_char(char c, cairo_t* cr) {
 		COMMENT,
 		AFFINE,
 		COMMAND,
-		RANGE_0
+		RANGE_X_MAX,
+		RANGE_X_OFFSET,
+		RANGE_Y_COORD,
+		RANGE_Y_MIN,
+		RANGE_Y_MAX,
+		RANGE_Y_OFFSET
 	} state = NORMAL;
+	static arrow_dir_t arrow_dir;
 	static int x_coord, y_coord, x_coord_sign, y_coord_sign;
 	static affine_stack_t* transforms = NULL;
 	static char command_buf[256];
 	static int command_buf_i;
 	if(transforms == NULL) transforms = affine_init();
+	affine_par_t *par_iter;
+	int x, y;
 
 	switch(state) {
 		case COMMENT:
@@ -85,149 +94,232 @@ int next_command_char(char c, cairo_t* cr) {
 					}
 					break;
 				case '[':
-					state = RANGE_0;
+					affine_start_split(&transforms);
+					break;
+				case ']':
+					affine_end_split(&transforms);
 					break;
 				case 'n':
-					cairo_save(cr);
-					cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
-					blank_cell(cr);
-					nand_gate_glyph(cr);
+					if(transforms->par_next == NULL) {
+						cairo_save(cr);
+						cairo_translate(cr,2*transforms->cur.wx,transforms->cur.wy*2);
+						blank_cell(cr);
+						nand_gate_glyph(cr);
+						cairo_restore(cr);
+					} else {
+						for(par_iter=transforms->par_next; par_iter != NULL; par_iter=par_iter->par_next) {
+							for(y=par_iter->y_range_min; y<=par_iter->y_range_max; y++) {
+								for(x=par_iter->x_range_min; x<=par_iter->x_range_max; x++) {
+									cairo_save(cr);
+									cairo_translate(cr,2*apply_x(par_iter->cur, x*par_iter->x_offset, y*par_iter->y_offset),apply_y(par_iter->cur, x*par_iter->x_offset, y*par_iter->y_offset)*2);
+									blank_cell(cr);
+									nand_gate_glyph(cr);
+									cairo_restore(cr);
+								}
+							}
+						}
+					}
 					update_screen(cr);
-					cairo_restore(cr);
 					break;
 				case 'a':
-					cairo_save(cr);
-					cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
-					blank_cell(cr);
-					and_gate_glyph(cr);
+					if(transforms->par_next == NULL) {
+						cairo_save(cr);
+						cairo_translate(cr,2*transforms->cur.wx,transforms->cur.wy*2);
+						blank_cell(cr);
+						and_gate_glyph(cr);
+						cairo_restore(cr);
+					} else {
+						for(par_iter=transforms->par_next; par_iter != NULL; par_iter=par_iter->par_next) {
+							for(y=par_iter->y_range_min; y<=par_iter->y_range_max; y++) {
+								for(x=par_iter->x_range_min; x<=par_iter->x_range_max; x++) {
+									cairo_save(cr);
+									cairo_translate(cr,2*apply_x(par_iter->cur, x*par_iter->x_offset, y*par_iter->y_offset),apply_y(par_iter->cur, x*par_iter->x_offset, y*par_iter->y_offset)*2);
+									blank_cell(cr);
+									and_gate_glyph(cr);
+									cairo_restore(cr);
+								}
+							}
+						}
+					}
 					update_screen(cr);
-					cairo_restore(cr);
 					break;
 				case 'o':
-					cairo_save(cr);
-					cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
-					blank_cell(cr);
-					or_gate_glyph(cr);
+					if(transforms->par_next == NULL) {
+						cairo_save(cr);
+						cairo_translate(cr,2*transforms->cur.wx,transforms->cur.wy*2);
+						blank_cell(cr);
+						or_gate_glyph(cr);
+						cairo_restore(cr);
+					} else {
+						for(par_iter=transforms->par_next; par_iter != NULL; par_iter=par_iter->par_next) {
+							for(y=par_iter->y_range_min; y<=par_iter->y_range_max; y++) {
+								for(x=par_iter->x_range_min; x<=par_iter->x_range_max; x++) {
+									cairo_save(cr);
+									cairo_translate(cr,2*apply_x(par_iter->cur, x*par_iter->x_offset, y*par_iter->y_offset),apply_y(par_iter->cur, x*par_iter->x_offset, y*par_iter->y_offset)*2);
+									blank_cell(cr);
+									or_gate_glyph(cr);
+									cairo_restore(cr);
+								}
+							}
+						}
+					}
 					update_screen(cr);
-					cairo_restore(cr);
 					break;
 				case 'x':
-					cairo_save(cr);
-					cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
-					blank_cell(cr);
-					xor_gate_glyph(cr);
+					if(transforms->par_next == NULL) {
+						cairo_save(cr);
+						cairo_translate(cr,2*transforms->cur.wx,transforms->cur.wy*2);
+						blank_cell(cr);
+						xor_gate_glyph(cr);
+						cairo_restore(cr);
+					} else {
+						for(par_iter=transforms->par_next; par_iter != NULL; par_iter=par_iter->par_next) {
+							for(y=par_iter->y_range_min; y<=par_iter->y_range_max; y++) {
+								for(x=par_iter->x_range_min; x<=par_iter->x_range_max; x++) {
+									cairo_save(cr);
+									cairo_translate(cr,2*apply_x(par_iter->cur, x*par_iter->x_offset, y*par_iter->y_offset),apply_y(par_iter->cur, x*par_iter->x_offset, y*par_iter->y_offset)*2);
+									blank_cell(cr);
+									xor_gate_glyph(cr);
+									cairo_restore(cr);
+								}
+							}
+						}
+					}
 					update_screen(cr);
-					cairo_restore(cr);
 					break;
 				case 'c':
-					cairo_save(cr);
-					cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
-					blank_cell(cr);
-					copy_cell_glyph(cr,0);
+					if(transforms->par_next == NULL) {
+						cairo_save(cr);
+						cairo_translate(cr,2*transforms->cur.wx,transforms->cur.wy*2);
+						blank_cell(cr);
+						copy_cell_glyph(cr,0);
+						cairo_restore(cr);
+					} else {
+						for(par_iter=transforms->par_next; par_iter != NULL; par_iter=par_iter->par_next) {
+							for(y=par_iter->y_range_min; y<=par_iter->y_range_max; y++) {
+								for(x=par_iter->x_range_min; x<=par_iter->x_range_max; x++) {
+									cairo_save(cr);
+									cairo_translate(cr,2*apply_x(par_iter->cur, x*par_iter->x_offset, y*par_iter->y_offset),apply_y(par_iter->cur, x*par_iter->x_offset, y*par_iter->y_offset)*2);
+									blank_cell(cr);
+									copy_cell_glyph(cr,0);
+									cairo_restore(cr);
+								}
+							}
+						}
+					}
 					update_screen(cr);
-					cairo_restore(cr);
 					break;
 				case 'd':
-					cairo_save(cr);
-					cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
-					blank_cell(cr);
-					delete_cell_glyph(cr,0);
+					if(transforms->par_next == NULL) {
+						cairo_save(cr);
+						cairo_translate(cr,2*transforms->cur.wx,transforms->cur.wy*2);
+						blank_cell(cr);
+						delete_cell_glyph(cr,0);
+						cairo_restore(cr);
+					} else {
+						for(par_iter=transforms->par_next; par_iter != NULL; par_iter=par_iter->par_next) {
+							for(y=par_iter->y_range_min; y<=par_iter->y_range_max; y++) {
+								for(x=par_iter->x_range_min; x<=par_iter->x_range_max; x++) {
+									cairo_save(cr);
+									cairo_translate(cr,2*apply_x(par_iter->cur, x*par_iter->x_offset, y*par_iter->y_offset),apply_y(par_iter->cur, x*par_iter->x_offset, y*par_iter->y_offset)*2);
+									blank_cell(cr);
+									delete_cell_glyph(cr,0);
+									cairo_restore(cr);
+								}
+							}
+						}
+					}
 					update_screen(cr);
-					cairo_restore(cr);
 					break;
 				case 'w':
-					cairo_save(cr);
-					cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
-					blank_cell(cr);
-					wire_cell_glyph(cr);
+					if(transforms->par_next == NULL) {
+						cairo_save(cr);
+						cairo_translate(cr,2*transforms->cur.wx,transforms->cur.wy*2);
+						blank_cell(cr);
+						wire_cell_glyph(cr);
+						cairo_restore(cr);
+					} else {
+						for(par_iter=transforms->par_next; par_iter != NULL; par_iter=par_iter->par_next) {
+							for(y=par_iter->y_range_min; y<=par_iter->y_range_max; y++) {
+								for(x=par_iter->x_range_min; x<=par_iter->x_range_max; x++) {
+									cairo_save(cr);
+									cairo_translate(cr,2*apply_x(par_iter->cur, x*par_iter->x_offset, y*par_iter->y_offset),apply_y(par_iter->cur, x*par_iter->x_offset, y*par_iter->y_offset)*2);
+									blank_cell(cr);
+									wire_cell_glyph(cr);
+									cairo_restore(cr);
+								}
+							}
+						}
+					}
 					update_screen(cr);
-					cairo_restore(cr);
 					break;
 				case 'C':
-					cairo_save(cr);
-					cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
-					blank_cell(cr);
-					crossover_cell_glyph(cr);
+					if(transforms->par_next == NULL) {
+						cairo_save(cr);
+						cairo_translate(cr,2*transforms->cur.wx,transforms->cur.wy*2);
+						blank_cell(cr);
+						crossover_cell_glyph(cr);
+						cairo_restore(cr);
+					} else {
+						for(par_iter=transforms->par_next; par_iter != NULL; par_iter=par_iter->par_next) {
+							for(y=par_iter->y_range_min; y<=par_iter->y_range_max; y++) {
+								for(x=par_iter->x_range_min; x<=par_iter->x_range_max; x++) {
+									cairo_save(cr);
+									cairo_translate(cr,2*apply_x(par_iter->cur, x*par_iter->x_offset, y*par_iter->y_offset),apply_y(par_iter->cur, x*par_iter->x_offset, y*par_iter->y_offset)*2);
+									blank_cell(cr);
+									crossover_cell_glyph(cr);
+									cairo_restore(cr);
+								}
+							}
+						}
+					}
 					update_screen(cr);
-					cairo_restore(cr);
 					break;
 				case 'W':
 					if(applyv_x(transforms->cur,-1,0)<0) {
-						cairo_save(cr);
-						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
-						cairo_setup_W(cr);
+						arrow_dir = ARROW_DIR_W;
 					} else if(applyv_x(transforms->cur,-1,0)>0) {
-						cairo_save(cr);
-						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
-						cairo_setup_E(cr);
+						arrow_dir = ARROW_DIR_E;
 					} else if(applyv_y(transforms->cur,-1,0)<0) {
-						cairo_save(cr);
-						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
-						cairo_setup_S(cr);
+						arrow_dir = ARROW_DIR_S;
 					} else if(applyv_y(transforms->cur,-1,0)>0) {
-						cairo_save(cr);
-						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
-						cairo_setup_N(cr);
+						arrow_dir = ARROW_DIR_N;
 					}
 					state = ARROW;
 					break;
 				case 'N':
 					if(applyv_x(transforms->cur,0,1)<0) {
-						cairo_save(cr);
-						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
-						cairo_setup_W(cr);
+						arrow_dir = ARROW_DIR_W;
 					} else if(applyv_x(transforms->cur,0,1)>0) {
-						cairo_save(cr);
-						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
-						cairo_setup_E(cr);
+						arrow_dir = ARROW_DIR_E;
 					} else if(applyv_y(transforms->cur,0,1)<0) {
-						cairo_save(cr);
-						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
-						cairo_setup_S(cr);
+						arrow_dir = ARROW_DIR_S;
 					} else if(applyv_y(transforms->cur,0,1)>0) {
-						cairo_save(cr);
-						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
-						cairo_setup_N(cr);
+						arrow_dir = ARROW_DIR_N;
 					}
 					state = ARROW;
 					break;
 				case 'E':
 					if(applyv_x(transforms->cur,1,0)<0) {
-						cairo_save(cr);
-						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
-						cairo_setup_W(cr);
+						arrow_dir = ARROW_DIR_W;
 					} else if(applyv_x(transforms->cur,1,0)>0) {
-						cairo_save(cr);
-						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
-						cairo_setup_E(cr);
+						arrow_dir = ARROW_DIR_E;
 					} else if(applyv_y(transforms->cur,1,0)<0) {
-						cairo_save(cr);
-						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
-						cairo_setup_S(cr);
+						arrow_dir = ARROW_DIR_S;
 					} else if(applyv_y(transforms->cur,1,0)>0) {
-						cairo_save(cr);
-						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
-						cairo_setup_N(cr);
+						arrow_dir = ARROW_DIR_N;
 					}
 					state = ARROW;
 					break;
 				case 'S':
 					if(applyv_x(transforms->cur,0,-1)<0) {
-						cairo_save(cr);
-						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
-						cairo_setup_W(cr);
+						arrow_dir = ARROW_DIR_W;
 					} else if(applyv_x(transforms->cur,0,-1)>0) {
-						cairo_save(cr);
-						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
-						cairo_setup_E(cr);
+						arrow_dir = ARROW_DIR_E;
 					} else if(applyv_y(transforms->cur,0,-1)<0) {
-						cairo_save(cr);
-						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
-						cairo_setup_S(cr);
+						arrow_dir = ARROW_DIR_S;
 					} else if(applyv_y(transforms->cur,0,-1)>0) {
-						cairo_save(cr);
-						cairo_translate(cr,transforms->cur.wx,transforms->cur.wy);
-						cairo_setup_N(cr);
+						arrow_dir = ARROW_DIR_N;
 					}
 					state = ARROW;
 					break;
@@ -237,52 +329,16 @@ int next_command_char(char c, cairo_t* cr) {
 					state = X_COORD;
 					break;
 				case '0':
-					x_coord = 0;
-					x_coord_sign = 1;
-					state = X_COORD;
-					break;
 				case '1':
-					x_coord = 1;
-					x_coord_sign = 1;
-					state = X_COORD;
-					break;
 				case '2':
-					x_coord = 2;
-					x_coord_sign = 1;
-					state = X_COORD;
-					break;
 				case '3':
-					x_coord = 3;
-					x_coord_sign = 1;
-					state = X_COORD;
-					break;
 				case '4':
-					x_coord = 4;
-					x_coord_sign = 1;
-					state = X_COORD;
-					break;
 				case '5':
-					x_coord = 5;
-					x_coord_sign = 1;
-					state = X_COORD;
-					break;
 				case '6':
-					x_coord = 6;
-					x_coord_sign = 1;
-					state = X_COORD;
-					break;
 				case '7':
-					x_coord = 7;
-					x_coord_sign = 1;
-					state = X_COORD;
-					break;
 				case '8':
-					x_coord = 8;
-					x_coord_sign = 1;
-					state = X_COORD;
-					break;
 				case '9':
-					x_coord = 9;
+					x_coord = c-'0';
 					x_coord_sign = 1;
 					state = X_COORD;
 					break;
@@ -300,24 +356,92 @@ int next_command_char(char c, cairo_t* cr) {
 		case ARROW:
 			switch(c) {
 				case '0':
-					arrow_0_glyph(cr);
-					cairo_restore(cr);
+					if(transforms->par_next == NULL) {
+						cairo_save(cr);
+						cairo_translate(cr,2*transforms->cur.wx,transforms->cur.wy*2);
+						setup_arrow(cr,arrow_dir);
+						arrow_0_glyph(cr);
+						cairo_restore(cr);
+					} else {
+						for(par_iter=transforms->par_next; par_iter != NULL; par_iter=par_iter->par_next) {
+							for(y=par_iter->y_range_min; y<=par_iter->y_range_max; y++) {
+								for(x=par_iter->x_range_min; x<=par_iter->x_range_max; x++) {
+									cairo_save(cr);
+									cairo_translate(cr,2*apply_x(par_iter->cur, x*par_iter->x_offset, y*par_iter->y_offset),apply_y(par_iter->cur, x*par_iter->x_offset, y*par_iter->y_offset)*2);
+									setup_arrow(cr,arrow_dir);
+									arrow_0_glyph(cr);
+									cairo_restore(cr);
+								}
+							}
+						}
+					}
 					update_screen(cr);
 					break;
 				case '1':
-					arrow_1_glyph(cr);
-					cairo_restore(cr);
+					if(transforms->par_next == NULL) {
+						cairo_save(cr);
+						cairo_translate(cr,2*transforms->cur.wx,transforms->cur.wy*2);
+						setup_arrow(cr,arrow_dir);
+						arrow_1_glyph(cr);
+						cairo_restore(cr);
+					} else {
+						for(par_iter=transforms->par_next; par_iter != NULL; par_iter=par_iter->par_next) {
+							for(y=par_iter->y_range_min; y<=par_iter->y_range_max; y++) {
+								for(x=par_iter->x_range_min; x<=par_iter->x_range_max; x++) {
+									cairo_save(cr);
+									cairo_translate(cr,2*apply_x(par_iter->cur, x*par_iter->x_offset, y*par_iter->y_offset),apply_y(par_iter->cur, x*par_iter->x_offset, y*par_iter->y_offset)*2);
+									setup_arrow(cr,arrow_dir);
+									arrow_1_glyph(cr);
+									cairo_restore(cr);
+								}
+							}
+						}
+					}
 					update_screen(cr);
 					break;
 				case 'x':
 				case 'X':
-					arrow_x_glyph(cr);
-					cairo_restore(cr);
+					if(transforms->par_next == NULL) {
+						cairo_save(cr);
+						cairo_translate(cr,2*transforms->cur.wx,transforms->cur.wy*2);
+						setup_arrow(cr,arrow_dir);
+						arrow_x_glyph(cr);
+						cairo_restore(cr);
+					} else {
+						for(par_iter=transforms->par_next; par_iter != NULL; par_iter=par_iter->par_next) {
+							for(y=par_iter->y_range_min; y<=par_iter->y_range_max; y++) {
+								for(x=par_iter->x_range_min; x<=par_iter->x_range_max; x++) {
+									cairo_save(cr);
+									cairo_translate(cr,2*apply_x(par_iter->cur, x*par_iter->x_offset, y*par_iter->y_offset),apply_y(par_iter->cur, x*par_iter->x_offset, y*par_iter->y_offset)*2);
+									setup_arrow(cr,arrow_dir);
+									arrow_x_glyph(cr);
+									cairo_restore(cr);
+								}
+							}
+						}
+					}
 					update_screen(cr);
 					break;
 				case '_':
-					arrow_none_glyph(cr);
-					cairo_restore(cr);
+					if(transforms->par_next == NULL) {
+						cairo_save(cr);
+						cairo_translate(cr,2*transforms->cur.wx,transforms->cur.wy*2);
+						setup_arrow(cr,arrow_dir);
+						arrow_none_glyph(cr);
+						cairo_restore(cr);
+					} else {
+						for(par_iter=transforms->par_next; par_iter != NULL; par_iter=par_iter->par_next) {
+							for(y=par_iter->y_range_min; y<=par_iter->y_range_max; y++) {
+								for(x=par_iter->x_range_min; x<=par_iter->x_range_max; x++) {
+									cairo_save(cr);
+									cairo_translate(cr,2*apply_x(par_iter->cur, x*par_iter->x_offset, y*par_iter->y_offset),apply_y(par_iter->cur, x*par_iter->x_offset, y*par_iter->y_offset)*2);
+									setup_arrow(cr,arrow_dir);
+									arrow_none_glyph(cr);
+									cairo_restore(cr);
+								}
+							}
+						}
+					}
 					update_screen(cr);
 					break;
 				default:
@@ -330,33 +454,16 @@ int next_command_char(char c, cairo_t* cr) {
 			x_coord *= 10;
 			switch(c) {
 				case '0':
-					break;
 				case '1':
-					x_coord += 1;
-					break;
 				case '2':
-					x_coord += 2;
-					break;
 				case '3':
-					x_coord += 3;
-					break;
 				case '4':
-					x_coord += 4;
-					break;
 				case '5':
-					x_coord += 5;
-					break;
 				case '6':
-					x_coord += 6;
-					break;
 				case '7':
-					x_coord += 7;
-					break;
 				case '8':
-					x_coord += 8;
-					break;
 				case '9':
-					x_coord += 9;
+					x_coord += c-'0';
 					break;
 				case ',':
 					state = Y_COORD;
@@ -365,9 +472,209 @@ int next_command_char(char c, cairo_t* cr) {
 					y_coord = 0;
 					y_coord_sign = 1;
 					break;
+				case ':':
+					if(transforms->par_cur == NULL) {
+						printf("range invalid outside []s\n");
+						return 4;
+					} else {
+						x_coord /= 10;
+						x_coord *= x_coord_sign;
+						transforms->par_cur->x_range_min=x_coord;
+						x_coord = 0;
+						x_coord_sign = 1;
+						state=RANGE_X_MAX;
+					}
+					break;
 				default:
 					fprintf(stderr, "Parse error while reading x coordinate\n");
 					return 2;
+					break;
+			}
+			break;
+		case RANGE_X_MAX:
+			x_coord *= 10;
+			switch(c) {
+				case '-':
+					x_coord_sign = -1;
+					break;
+				case '0':
+				case '1':
+				case '2':
+				case '3':
+				case '4':
+				case '5':
+				case '6':
+				case '7':
+				case '8':
+				case '9':
+					x_coord += (c-'0');
+					break;
+				case ',':
+					x_coord /= 10;
+					x_coord *= x_coord_sign;
+					transforms->par_cur->x_range_max = x_coord;
+					transforms->par_cur->x_offset = 1;
+					y_coord = 0;
+					y_coord_sign = 1;
+					state = RANGE_Y_COORD;
+					break;
+				case '*':
+					x_coord /= 10;
+					x_coord *= x_coord_sign;
+					transforms->par_cur->x_range_max = x_coord;
+					x_coord = 0;
+					x_coord_sign = 1;
+					state = RANGE_X_OFFSET;
+					break;
+				default:
+					fprintf(stderr, "Parse error while reading range\n");
+					return 2;
+					break;
+			}
+			break;
+		case RANGE_X_OFFSET:
+			x_coord *= 10;
+			switch(c) {
+				case '-':
+					x_coord_sign = -1;
+					break;
+				case '0':
+				case '1':
+				case '2':
+				case '3':
+				case '4':
+				case '5':
+				case '6':
+				case '7':
+				case '8':
+				case '9':
+					x_coord += (c-'0');
+					break;
+				case ',':
+					x_coord /= 10;
+					x_coord *= x_coord_sign;
+					transforms->par_cur->x_offset = x_coord;
+					y_coord = 0;
+					y_coord_sign = 1;
+					state = RANGE_Y_COORD;
+					break;
+				default:
+					fprintf(stderr, "Parse error while reading range\n");
+					return 2;
+					break;
+			}
+			break;
+		case RANGE_Y_COORD:
+			y_coord *= 10;
+			switch(c) {
+				case '-':
+					y_coord_sign = -1;
+					break;
+				case '0':
+				case '1':
+				case '2':
+				case '3':
+				case '4':
+				case '5':
+				case '6':
+				case '7':
+				case '8':
+				case '9':
+					y_coord += (c-'0');
+					break;
+				case ':':
+					if(transforms->par_cur == NULL) {
+						printf("range invalid outside []s\n");
+						return 4;
+					} else {
+						y_coord /= 10;
+						y_coord *= y_coord_sign;
+						transforms->par_cur->y_range_min=y_coord;
+						y_coord = 0;
+						y_coord_sign = 1;
+						state=RANGE_Y_MAX;
+					}
+					break;
+				case ';':
+					y_coord /= 10;
+					y_coord *= y_coord_sign;
+					transforms->par_cur->y_range_min=1;
+					transforms->par_cur->y_range_max=1;
+					transforms->par_cur->y_offset=y_coord;
+					state = NORMAL;
+					break;
+				default:
+					fprintf(stderr, "Parse error while reading y coordinate\n");
+					return 3;
+					break;
+			}
+			break;
+		case RANGE_Y_MAX:
+			y_coord *= 10;
+			switch(c) {
+				case '-':
+					y_coord_sign = -1;
+					break;
+				case '0':
+				case '1':
+				case '2':
+				case '3':
+				case '4':
+				case '5':
+				case '6':
+				case '7':
+				case '8':
+				case '9':
+					y_coord += (c-'0');
+					break;
+				case '*':
+					y_coord /= 10;
+					y_coord *= y_coord_sign;
+					transforms->par_cur->y_range_max=y_coord;
+					y_coord = 0;
+					y_coord_sign = 1;
+					state = RANGE_Y_OFFSET;
+					break;
+				case ';':
+					y_coord /= 10;
+					y_coord *= y_coord_sign;
+					transforms->par_cur->y_range_max=y_coord;
+					transforms->par_cur->y_offset=1;
+					state = NORMAL;
+					break;
+				default:
+					fprintf(stderr, "Parse error while reading y coordinate\n");
+					return 3;
+					break;
+			}
+			break;
+		case RANGE_Y_OFFSET:
+			y_coord *= 10;
+			switch(c) {
+				case '-':
+					y_coord_sign = -1;
+					break;
+				case '0':
+				case '1':
+				case '2':
+				case '3':
+				case '4':
+				case '5':
+				case '6':
+				case '7':
+				case '8':
+				case '9':
+					y_coord += (c-'0');
+					break;
+				case ';':
+					y_coord /= 10;
+					y_coord *= y_coord_sign;
+					transforms->par_cur->y_offset=y_coord;
+					state = NORMAL;
+					break;
+				default:
+					fprintf(stderr, "Parse error while reading y coordinate\n");
+					return 3;
 					break;
 			}
 			break;
@@ -378,39 +685,36 @@ int next_command_char(char c, cairo_t* cr) {
 					y_coord_sign = -1;
 					break;
 				case '0':
-					break;
 				case '1':
-					y_coord += 1;
-					break;
 				case '2':
-					y_coord += 2;
-					break;
 				case '3':
-					y_coord += 3;
-					break;
 				case '4':
-					y_coord += 4;
-					break;
 				case '5':
-					y_coord += 5;
-					break;
 				case '6':
-					y_coord += 6;
-					break;
 				case '7':
-					y_coord += 7;
-					break;
 				case '8':
-					y_coord += 8;
-					break;
 				case '9':
-					y_coord += 9;
+					y_coord += (c-'0');
+					break;
+				case ':':
+					if(transforms->par_cur == NULL) {
+						printf("range invalid outside []s\n");
+						return 4;
+					} else {
+						transforms->par_cur->x_range_min=1;
+						transforms->par_cur->x_range_max=1;
+						transforms->par_cur->x_offset=x_coord;
+						transforms->par_cur->y_range_min=y_coord;
+						y_coord = 0;
+						y_coord_sign = 1;
+						state=RANGE_Y_MAX;
+					}
 					break;
 				case ';':
 					y_coord /= 10;
 					y_coord *= y_coord_sign;
+					affine_transform(&transforms, affine_translate(x_coord,y_coord));
 					state = NORMAL;
-					affine_transform(&transforms, affine_translate(x_coord*2,y_coord*2));
 					break;
 				default:
 					fprintf(stderr, "Parse error while reading y coordinate\n");
