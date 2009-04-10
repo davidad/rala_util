@@ -104,12 +104,18 @@ cairosdl_surface_create (
          *
          * However, it turns out malloc is actually safe on many (all?)
          * platforms so we'll just go ahead anyway. */
-        target = cairo_image_surface_create_for_data (sdl_surface->pixels,
+        
+	/*target = cairo_image_surface_create_for_data (sdl_surface->pixels,
                                                       format,
                                                       sdl_surface->w,
                                                       sdl_surface->h,
                                                       sdl_surface->pitch);
-        is_dirty = 0;
+        is_dirty = 0;*/
+
+        target = cairo_image_surface_create (CAIRO_FORMAT_RGB24,
+                                             sdl_surface->w,
+                                             sdl_surface->h);
+        is_dirty = 1;
     }
     else {
         /* Need a shadow image surface. */
@@ -183,8 +189,8 @@ _cairosdl_surface_obtain_shadow_buffer(
         return CAIRO_STATUS_SURFACE_TYPE_MISMATCH;
 
     format = cairo_image_surface_get_format (surface);
-    if (format != CAIRO_FORMAT_ARGB32)
-        return CAIRO_STATUS_INVALID_FORMAT;
+    //if (format != CAIRO_FORMAT_ARGB32)
+        //return CAIRO_STATUS_INVALID_FORMAT;
 
     if (OUT_buffer != NULL)
         *OUT_buffer = cairo_image_surface_get_data (surface);
@@ -470,6 +476,8 @@ unpremultiply_row(
     unsigned const * src,
     size_t           num_pixels)
 {
+    memcpy(dst, src, num_pixels*4);
+    return;
     size_t i = 0;
     while (i < num_pixels) {
 	/* We want to identify long runs of constant input pixels and
@@ -562,6 +570,8 @@ premultiply_row(
     unsigned const * src,
     size_t           num_pixels)
 {
+    memcpy(dst, src, num_pixels*4);
+    return;
     size_t i = 0;
     while (i < num_pixels) {
 	/* We want to identify long runs of constant input pixels and
@@ -653,9 +663,10 @@ _cairosdl_blit_and_unpremultiply (
         return;
 
     while (height-- > 0) {
-        unpremultiply_row ((unsigned *)target_bytes,
+        /*unpremultiply_row ((unsigned *)target_bytes,
                            (unsigned const *)source_bytes,
-                           width);
+                           width);*/
+	memcpy(target_bytes, source_bytes, width*4);
 
         target_bytes += target_stride;
         source_bytes += source_stride;
