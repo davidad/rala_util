@@ -2,9 +2,11 @@
 
 void update_screen(cairo_t *cr) {
 	SDL_Event event;
-	event.type = SDL_USEREVENT;
 	cairosdl_surface_flush(cairo_get_target(cr));
-	SDL_PushEvent(&event);
+	if(SDL_PeepEvents(&event, 1, SDL_PEEKEVENT, SDL_EVENTMASK(SDL_USEREVENT)) == 0) {
+		event.type = SDL_USEREVENT;
+		SDL_PushEvent(&event);
+	}
 }
 
 void cairo_setup_W(cairo_t* cr) {
@@ -36,20 +38,39 @@ int next_command_char(char c, cairo_t* cr) {
 		X_COORD,
 		Y_COORD,
 		COMMENT,
-		AFFINE
+		AFFINE,
+		COMMAND
 	} state = NORMAL;
 	static int x_coord, y_coord, x_coord_sign, y_coord_sign;
 	static affine_stack_t* transforms = NULL;
+	static char command_buf[256];
+	static int command_buf_i;
 	if(transforms == NULL) transforms = affine_init();
 
 	switch(state) {
 		case COMMENT:
 			if(c == '\n') state = NORMAL;
 			break;
+		case COMMAND:
+			if(c != '%') {
+				command_buf[command_buf_i++] = c;
+			} else {
+				command_buf[command_buf_i] = '\0';
+				if(!strcmp(command_buf, "clear") || !strcmp(command_buf, "CLEAR")) {
+					clear(cr, cairo_image_surface_get_width(cairo_get_target(cr)), cairo_image_surface_get_height(cairo_get_target(cr)));
+					update_screen(cr);
+				}
+				state = NORMAL;
+			}
+			break;
 		case NORMAL:
 			switch(c) {
 				case '#':
 					state = COMMENT;
+					break;
+				case '%':
+					state = COMMAND;
+					command_buf_i=0;
 					break;
 				case '~':
 					state = AFFINE;
@@ -288,6 +309,14 @@ int next_command_char(char c, cairo_t* cr) {
 					arrow_x_glyph(cr);
 					cairo_restore(cr);
 					update_screen(cr);
+					break;
+				case '_':
+					arrow_none_glyph(cr);
+					cairo_restore(cr);
+					update_screen(cr);
+					break;
+				default:
+					cairo_restore(cr);
 					break;
 			}
 			state = NORMAL;

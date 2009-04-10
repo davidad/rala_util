@@ -1,6 +1,9 @@
 #include <cairo/cairo.h>
 #include <math.h>
 
+#ifndef RALA_GLYPHS_
+#define RALA_GLYPHS_
+
 #define ARROW_POS_X -0.1
 #define ARROW_POS_Y -0.1
 
@@ -29,3 +32,9 @@ void arrow_0_glyph(cairo_t *cr);
 void arrow_1_glyph(cairo_t *cr);
 
 void blank_cell(cairo_t *cr);
+void hollow_stem_cell_glyph(cairo_t *cr);
+
+typedef enum {NONE, HOLLOW_STEM, STEM} blank_cell_style_t;
+blank_cell_style_t blank_cell_style;
+void clear(cairo_t *cr, int w, int h);
+#endif
