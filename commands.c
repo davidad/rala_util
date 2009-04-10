@@ -75,10 +75,10 @@ int next_command_char(char c, cairo_t* cr) {
 				case '~':
 					state = AFFINE;
 					break;
-				case '[':
+				case '{':
 					affine_save(&transforms);
 					break;
-				case ']':
+				case '}':
 					if(affine_restore(&transforms)) {
 						fprintf(stderr, "No transform to pop!\n");
 					}
