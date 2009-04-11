@@ -36,6 +36,40 @@ int applyv_y(affine_t t, int x, int y) {
 	return t.yx*x + t.yy*y;
 }
 
+int applyd_x(affine_t t, char d) {
+	switch(d) {
+		case 'N':
+		case 'n':
+			return applyv_x(t,0,1);
+		case 'E':
+		case 'e':
+			return applyv_x(t,1,0);
+		case 'S':
+		case 's':
+			return applyv_x(t,0,-1);
+		case 'W':
+		case 'w':
+			return applyv_x(t,-1,0);
+	}
+}
+
+int applyd_y(affine_t t, char d) {
+	switch(d) {
+		case 'N':
+		case 'n':
+			return applyv_y(t,0,1);
+		case 'E':
+		case 'e':
+			return applyv_y(t,1,0);
+		case 'S':
+		case 's':
+			return applyv_y(t,0,-1);
+		case 'W':
+		case 'w':
+			return applyv_y(t,-1,0);
+	}
+}
+
 affine_stack_t* affine_init(void) {
 	affine_stack_t *p = malloc(sizeof(affine_stack_t));
 	p->prev = NULL;
@@ -110,6 +144,23 @@ void affine_transform(affine_stack_t **p, affine_t t) {
 	}
 	(*p)->cur = affine_compose((*p)->cur, t);
 }
+
+void affine_operate(affine_stack_t *transforms, affine_operator_t op, void* data) {
+	affine_par_t* par_iter;
+	int x, y;
+	if(transforms->par_next == NULL) {
+		op(data, transforms->cur.wx, transforms->cur.wy);
+	} else {
+		for(par_iter=transforms->par_next; par_iter != NULL; par_iter=par_iter->par_next) {
+			for(y=par_iter->y_range_min; y<=par_iter->y_range_max; y++) {
+				for(x=par_iter->x_range_min; x<=par_iter->x_range_max; x++) {
+					op(data,apply_x(par_iter->cur, x*par_iter->x_offset, y*par_iter->y_offset),apply_y(par_iter->cur, x*par_iter->x_offset, y*par_iter->y_offset));
+				}
+			}
+		}
+	}
+}
+
 
 affine_t identity = {.xx = 1, .yy = 1, .xy = 0, .yx = 0, .wx = 0, .wy = 0};
 affine_t flip_x = {.xx = -1, .yy = 1, .xy = 0, .yx = 0, .wx = 0, .wy = 0};
