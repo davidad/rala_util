@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 #ifndef INT_AFFINE_H
 #define INT_AFFINE_H
@@ -17,11 +18,14 @@ struct affine_par {
 	int y_range_min;
 	int x_range_max;
 	int y_range_max;
+	int x_cur;
+	int y_cur;
 	struct affine_par* par_next;
 };
 
 struct affine_stack {
 	affine_t cur;
+	bool trivial_par;
 	struct affine_par* par_cur;
 	struct affine_par* par_next;
 	struct affine_stack* prev;

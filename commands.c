@@ -120,6 +120,11 @@ int next_command_char(char c, cairo_t* cr) {
 					affine_operate(transforms,set_cell_cb,&cell_cb_data);
 					update_screen(cr);
 					break;
+				case 's':
+					cell_cb_data.cell_type=CELL_TYPE_STEM;
+					affine_operate(transforms,set_cell_cb,&cell_cb_data);
+					update_screen(cr);
+					break;
 				case 'W':
 				case 'N':
 				case 'E':
@@ -346,9 +351,9 @@ int next_command_char(char c, cairo_t* cr) {
 				case ';':
 					y_coord /= 10;
 					y_coord *= y_coord_sign;
-					transforms->par_cur->y_range_min=1;
-					transforms->par_cur->y_range_max=1;
-					transforms->par_cur->y_offset=y_coord;
+					transforms->par_cur->y_range_min=y_coord;
+					transforms->par_cur->y_range_max=y_coord;
+					transforms->par_cur->y_offset=1;
 					state = NORMAL;
 					break;
 				default:
@@ -449,9 +454,9 @@ int next_command_char(char c, cairo_t* cr) {
 						printf("range invalid outside []s\n");
 						return 4;
 					} else {
-						transforms->par_cur->x_range_min=1;
-						transforms->par_cur->x_range_max=1;
-						transforms->par_cur->x_offset=x_coord;
+						transforms->par_cur->x_range_min=x_coord;
+						transforms->par_cur->x_range_max=x_coord;
+						transforms->par_cur->x_offset=1;
 						transforms->par_cur->y_range_min=y_coord;
 						y_coord = 0;
 						y_coord_sign = 1;

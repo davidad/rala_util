@@ -80,19 +80,39 @@ affine_stack_t* affine_init(void) {
 	return p;
 }
 
+void init_par(affine_par_t *p) {
+	p->x_offset = 0;
+	p->y_offset = 0;
+	p->x_range_min = 0;
+	p->y_range_min = 0;
+	p->x_range_max = 0;
+	p->y_range_max = 0;
+	p->par_next = NULL;
+	p->cur = identity;
+}
+
+void free_pars(affine_stack_t *p) {
+	affine_par_t* par_iter = p->par_next;
+	while(par_iter!=NULL) {
+		affine_par_t* to_free = par_iter;
+		par_iter=par_iter->par_next;
+		free(to_free);
+	}
+}
+
 void affine_save(affine_stack_t **p) {
 	affine_stack_t *old = *p;
 	*p = malloc(sizeof(affine_stack_t));
 	(*p)->cur = old->cur;
 	(*p)->prev = old;
-	(*p)->par_next = NULL;
 	(*p)->par_cur = NULL;
-	affine_par_t* par_iter;
-	affine_par_t** par_dest = &((*p)->par_next);
-	for(par_iter=old->par_next; par_iter!=NULL; par_iter=par_iter->par_next) {
-		*par_dest = malloc(sizeof(affine_par_t));
-		memcpy(*par_dest, par_iter, sizeof(affine_par_t));
-		par_dest = &((*par_dest)->par_next);
+	if(old->par_next != NULL) {
+		(*p)->par_next = malloc(sizeof(affine_par_t));
+		init_par((*p)->par_next);
+		(*p)->trivial_par = true;
+	} else {
+		(*p)->par_next = NULL;
+		(*p)->trivial_par = false;
 	}
 }
 
@@ -102,29 +122,28 @@ int affine_restore(affine_stack_t **p) {
 	}
 	affine_stack_t *old = *p;
 	*p = (*p)->prev;
-	affine_par_t* par_iter = old->par_next;
-	while(par_iter!=NULL) {
-		affine_par_t* to_free = par_iter;
-		par_iter=par_iter->par_next;
-		free(to_free);
-	}
+	free_pars(old);
 	free(old);
 	return 0;
 }
 
 void affine_start_split(affine_stack_t **p) {
-	affine_par_t** par_iter = &((*p)->par_next);
-	while((*par_iter)!=NULL) par_iter=&((*par_iter)->par_next);
-	(*par_iter) = malloc(sizeof(affine_par_t));
-	(*p)->par_cur = (*par_iter);
-	(*par_iter)->x_offset = 0;
-	(*par_iter)->y_offset = 0;
-	(*par_iter)->x_range_min = 0;
-	(*par_iter)->y_range_min = 0;
-	(*par_iter)->x_range_max = 0;
-	(*par_iter)->y_range_max = 0;
-	(*par_iter)->cur = (*p)->cur;
-	(*par_iter)->par_next = NULL;
+	if((*p)->trivial_par) {
+		free_pars(*p);
+		(*p)->par_next = malloc(sizeof(affine_par_t));
+		init_par((*p)->par_next);
+		(*p)->par_cur = (*p)->par_next;
+		(*p)->trivial_par =false;
+	} else {
+		affine_par_t** par_iter = &((*p)->par_next);
+		while((*par_iter)!=NULL) par_iter=&((*par_iter)->par_next);
+		(*par_iter) = malloc(sizeof(affine_par_t));
+		(*p)->par_cur = (*par_iter);
+		init_par(*par_iter);
+		if((*p)->prev == NULL || (*p)->prev->par_next == NULL) {
+			(*par_iter)->cur = (*p)->cur;
+		}
+	}
 }
 
 int affine_end_split(affine_stack_t **p) {
@@ -151,12 +170,52 @@ void affine_operate(affine_stack_t *transforms, affine_operator_t op, void* data
 	if(transforms->par_next == NULL) {
 		op(data, transforms->cur.wx, transforms->cur.wy);
 	} else {
-		for(par_iter=transforms->par_next; par_iter != NULL; par_iter=par_iter->par_next) {
-			for(y=par_iter->y_range_min; y<=par_iter->y_range_max; y++) {
-				for(x=par_iter->x_range_min; x<=par_iter->x_range_max; x++) {
-					op(data,apply_x(par_iter->cur, x*par_iter->x_offset, y*par_iter->y_offset),apply_y(par_iter->cur, x*par_iter->x_offset, y*par_iter->y_offset));
-				}
+		affine_stack_t* j = transforms;
+		while(j != NULL && j->par_next != NULL) {
+			j->par_cur = j->par_next;
+			j->par_cur->x_cur = j->par_cur->x_range_min;
+			j->par_cur->y_cur = j->par_cur->y_range_min;
+			j = j->prev;
+		}
+		while(1) {
+			affine_t composite = identity;
+			j = transforms;
+			while(j != NULL && j->par_cur != NULL) {
+				composite = affine_compose(j->par_cur->cur, composite);
+				composite = affine_compose(affine_translate(j->par_cur->x_cur*j->par_cur->x_offset,j->par_cur->y_cur*j->par_cur->y_offset), composite);
+				j = j->prev;
 			}
+			op(data, composite.wx, composite.wy);
+			j = transforms;
+			while(j != NULL && j->par_cur != NULL && j->par_cur->par_next == NULL && j->par_cur->x_cur == j->par_cur->x_range_max && j->par_cur->y_cur == j->par_cur->y_range_max) {
+				j->par_cur = j->par_next;
+				j->par_cur->x_cur = j->par_cur->x_range_min;
+				j->par_cur->y_cur = j->par_cur->y_range_min;
+				j = j->prev;
+			}
+			if(j == NULL || j->par_next == NULL ) {
+				j = transforms;
+				while(j != NULL && j->par_cur != NULL) {
+					j->par_cur = NULL;
+					j = j->prev;
+				}
+				break;
+			}
+			if(j->par_cur->x_cur < j->par_cur->x_range_max) {
+				j->par_cur->x_cur++;
+			} else if (j->par_cur->y_cur < j->par_cur->y_range_max) {
+				j->par_cur->x_cur = j->par_cur->x_range_min;
+				j->par_cur->y_cur++;
+			} else {
+				j->par_cur = j->par_cur->par_next;
+				j->par_cur->x_cur = j->par_cur->x_range_min;
+				j->par_cur->y_cur = j->par_cur->y_range_min;
+			}
+		}
+		j = transforms;
+		while(j != NULL && j->par_cur != NULL) {
+			j->par_cur = NULL;
+			j = j->prev;
 		}
 	}
 }
