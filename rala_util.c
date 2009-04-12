@@ -29,7 +29,6 @@ void set_up_drawing_environment(void) {
 	SDL_Event event;
 	event.type = SDL_USEREVENT;
 	SDL_PushEvent (&event);
-	printf("pushed event\n");
 
 }
 
@@ -54,7 +53,7 @@ int from_socket_render_thread (void* data) {
 	while(sock == NULL) {
 		sock = SDLNet_TCP_Accept(server_sock);
 	}
-	printf("got connection\n");
+	printf("Got connection.\n");
 
 	//Wait for commands
 	char buf;
@@ -117,7 +116,6 @@ void sdl_event_loop(SDL_Surface **screen, SDL_Surface **canvas) {
 			case SDL_USEREVENT:
 				SDL_BlitSurface(*canvas, NULL, *screen, NULL);
 				SDL_Flip (*screen);
-				printf("Repainted screen\n");
 				break;
 		}
 	}
@@ -151,7 +149,6 @@ int main(int argc, char **argv) {
 		}
 		else if(!strncmp(argv[i], "--cell-size=", 12)) {
 			cell_size=atoi(strchr(argv[i],'=')+1);
-			printf("changing cell size to %d\n", cell_size);
 		}
 		else if(!strcmp(argv[i], "--to=sdl")) {
 			output=TO_SDL;
