@@ -349,8 +349,8 @@ int next_command_char(char c, cairo_t* cr, updater_t update_screen) {
 					state = NORMAL;
 					break;
 				default:
-					fprintf(stderr, "Parse error while reading y coordinate\n");
-					return 3;
+					state = NORMAL;
+					next_command_char(c,cr,update_screen);
 					break;
 			}
 			break;
@@ -388,8 +388,8 @@ int next_command_char(char c, cairo_t* cr, updater_t update_screen) {
 					state = NORMAL;
 					break;
 				default:
-					fprintf(stderr, "Parse error while reading y coordinate\n");
-					return 3;
+					state = NORMAL;
+					next_command_char(c,cr,update_screen);
 					break;
 			}
 			break;
@@ -418,8 +418,8 @@ int next_command_char(char c, cairo_t* cr, updater_t update_screen) {
 					state = NORMAL;
 					break;
 				default:
-					fprintf(stderr, "Parse error while reading y coordinate\n");
-					return 3;
+					state = NORMAL;
+					next_command_char(c,cr,update_screen);
 					break;
 			}
 			break;
@@ -449,6 +449,8 @@ int next_command_char(char c, cairo_t* cr, updater_t update_screen) {
 						transforms->par_cur->x_range_min=x_coord;
 						transforms->par_cur->x_range_max=x_coord;
 						transforms->par_cur->x_offset=1;
+						y_coord /= 10;
+						y_coord *= y_coord_sign;
 						transforms->par_cur->y_range_min=y_coord;
 						y_coord = 0;
 						y_coord_sign = 1;
@@ -462,8 +464,8 @@ int next_command_char(char c, cairo_t* cr, updater_t update_screen) {
 					state = NORMAL;
 					break;
 				default:
-					fprintf(stderr, "Parse error while reading y coordinate\n");
-					return 3;
+					state = NORMAL;
+					next_command_char(c,cr,update_screen);
 					break;
 			}
 			break;

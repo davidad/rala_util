@@ -187,7 +187,7 @@ void affine_operate(affine_stack_t *transforms, affine_operator_t op, void* data
 			}
 			op(data, composite);
 			j = transforms;
-			while(j != NULL && j->par_cur != NULL && j->par_cur->par_next == NULL && j->par_cur->x_cur == j->par_cur->x_range_max && j->par_cur->y_cur == j->par_cur->y_range_max) {
+			while(j != NULL && j->par_cur != NULL && j->par_cur->par_next == NULL && j->par_cur->x_cur >= j->par_cur->x_range_max && j->par_cur->y_cur >= j->par_cur->y_range_max) {
 				j->par_cur = j->par_next;
 				j->par_cur->x_cur = j->par_cur->x_range_min;
 				j->par_cur->y_cur = j->par_cur->y_range_min;
