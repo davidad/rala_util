@@ -7,29 +7,54 @@
 #include "cairosdl.h"
 #include "commands.h"
 
-#define WIDTH 1024
-#define HEIGHT 1024
-
 cairo_t *cr;
 SDL_Thread *rendert;
+int width = 1024;
+int height = 1024;
+enum output_type {TO_SDL, TO_SDL_PNGS, TO_PNG, TO_PS, TO_EPS, TO_PDF, TO_SOCKET, TO_FILE, OUTPUT_TYPE_LENGTH} output = TO_SDL;
+enum input_type {FROM_SOCKET, FROM_FILE, INPUT_TYPE_LENGTH} input = FROM_SOCKET;
+FILE* to_file = NULL;
+char* to_filename = NULL;
+char* to_hostname = NULL;
+int to_port = 0;
+FILE* from_file = NULL;
 char* from_hostname = NULL;
 int from_port = 0;
-FILE* from_file = NULL;
 int cell_size = 30;
+
+void updater_sdl(cairo_t *cr) {
+	SDL_Event event;
+	cairosdl_surface_flush(cairo_get_target(cr));
+	if(SDL_PeepEvents(&event, 1, SDL_PEEKEVENT, SDL_EVENTMASK(SDL_USEREVENT)) == 0) {
+		event.type = SDL_USEREVENT;
+		SDL_PushEvent(&event);
+	}
+}
+
+void updater_sdl_pngs(cairo_t *cr) {
+	static int filenum = 0;
+	SDL_Event event;
+	cairosdl_surface_flush(cairo_get_target(cr));
+	if(SDL_PeepEvents(&event, 1, SDL_PEEKEVENT, SDL_EVENTMASK(SDL_USEREVENT)) == 0) {
+		event.type = SDL_USEREVENT;
+		SDL_PushEvent(&event);
+	}
+	char filename[256];
+	sprintf(filename, "%s%.5d.png\0", to_filename, filenum++);
+	cairo_surface_write_to_png(cairo_get_target(cr), filename);
+}
+
+updater_t updaters[OUTPUT_TYPE_LENGTH];
 
 void set_up_drawing_environment(void) {
 	cairo_set_source_rgb(cr,1.0,1.0,1.0);
 	cairo_paint(cr);
 	
-	cairo_translate(cr, WIDTH/2-cell_size/2, HEIGHT/2-cell_size/2);
+	cairo_translate(cr, width/2-cell_size/2, height/2-cell_size/2);
 	cairo_scale (cr, cell_size, cell_size);
 
-	clear(cr, WIDTH, HEIGHT);
-	cairosdl_surface_flush(cairo_get_target(cr));
-	SDL_Event event;
-	event.type = SDL_USEREVENT;
-	SDL_PushEvent (&event);
-
+	clear(cr, width, height);
+	updaters[output](cr);
 }
 
 int from_socket_render_thread (void* data) {
@@ -58,7 +83,7 @@ int from_socket_render_thread (void* data) {
 	//Wait for commands
 	char buf;
 	while(SDLNet_TCP_Recv(sock, &buf, 1) > 0) {
-		next_command_char(buf, cr);
+		next_command_char(buf, cr, updaters[output]);
 	}
 }
 
@@ -68,7 +93,7 @@ int from_file_render_thread (void* data) {
 	//Read commands
 	char buf;
 	while((buf = fgetc(from_file)) != EOF) {
-		next_command_char(buf, cr);
+		next_command_char(buf, cr, updaters[output]);
 	}
 }
 
@@ -90,8 +115,8 @@ void init_video_net(void) {
 }
 
 void set_canvas_cairosdl(SDL_Surface **screen, SDL_Surface **canvas) {
-	*screen = SDL_SetVideoMode(WIDTH,HEIGHT,32,SDL_HWSURFACE|SDL_ASYNCBLIT|SDL_RESIZABLE);
-	*canvas = SDL_CreateRGBSurface(SDL_SWSURFACE, WIDTH, HEIGHT, 32, CAIROSDL_RMASK, CAIROSDL_GMASK, CAIROSDL_BMASK, 0);
+	*screen = SDL_SetVideoMode(width,height,32,SDL_HWSURFACE|SDL_ASYNCBLIT|SDL_RESIZABLE);
+	*canvas = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32, CAIROSDL_RMASK, CAIROSDL_GMASK, CAIROSDL_BMASK, 0);
 	cr = cairosdl_create(*canvas);
 }
 
@@ -110,7 +135,7 @@ void sdl_event_loop(SDL_Surface **screen, SDL_Surface **canvas) {
 				exit(0);
 			case SDL_VIDEORESIZE:
 				*screen = SDL_SetVideoMode (event.resize.w, event.resize.h, 32, SDL_HWSURFACE | SDL_RESIZABLE);
-				/*canvas = SDL_CreateRGBSurface(SDL_SWSURFACE, WIDTH, HEIGHT, 32, CAIROSDL_RMASK, CAIROSDL_GMASK, CAIROSDL_BMASK, 0);
+				/*canvas = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32, CAIROSDL_RMASK, CAIROSDL_GMASK, CAIROSDL_BMASK, 0);
 				cr = cairosdl_create(canvas);
 				clear(cr, event.resize.w, event.resize.h);*/
 			case SDL_USEREVENT:
@@ -130,11 +155,6 @@ void print_help(char** argv) {
 }
 
 int main(int argc, char **argv) {
-	enum {TO_SDL, TO_PNG, TO_PS, TO_PDF, TO_SOCKET, TO_FILE} output = TO_SDL;
-	enum {FROM_SOCKET, FROM_FILE} input = FROM_SOCKET;
-	FILE* to_file = NULL;
-	char* to_hostname = NULL;
-	int to_port = 0;
 	int i = 1;
 	char* c;
 	while(i < argc) {
@@ -147,31 +167,47 @@ int main(int argc, char **argv) {
 		else if(!strcmp(argv[i], "--blank=none")) {
 			blank_cell_style=NONE;
 		}
+		else if(!strncmp(argv[i], "--width=", 8)) {
+			width=atoi(strchr(argv[i],'=')+1);
+		}
+		else if(!strncmp(argv[i], "--height=", 9)) {
+			height=atoi(strchr(argv[i],'=')+1);
+		}
 		else if(!strncmp(argv[i], "--cell-size=", 12)) {
 			cell_size=atoi(strchr(argv[i],'=')+1);
 		}
 		else if(!strcmp(argv[i], "--to=sdl")) {
 			output=TO_SDL;
 		}
+		else if(!strcmp(argv[i], "--to=sdl+pngs")) {
+			output=TO_SDL_PNGS;
+			if(i+1>=argc) printf("no basename specified\n");
+			to_filename=argv[++i];
+		}
 		else if(!strcmp(argv[i], "--to=png")) {
 			output=TO_PNG;
 			if(i+1>=argc) printf("no filename specified\n");
-			to_file=fopen(argv[++i], "w");
+			to_filename=argv[++i];
+		}
+		else if(!strcmp(argv[i], "--to=eps")) {
+			output=TO_EPS;
+			if(i+1>=argc) printf("no filename specified\n");
+			to_filename=argv[++i];
 		}
 		else if(!strcmp(argv[i], "--to=ps")) {
 			output=TO_PS;
 			if(i+1>=argc) printf("no filename specified\n");
-			to_file=fopen(argv[++i], "w");
+			to_filename=argv[++i];
 		}
 		else if(!strcmp(argv[i], "--to=pdf")) {
 			output=TO_PDF;
 			if(i+1>=argc) printf("no filename specified\n");
-			to_file=fopen(argv[++i], "w");
+			to_filename=argv[++i];
 		}
 		else if(!strcmp(argv[i], "--to=file")) {
 			input=TO_FILE;
 			if(i+1>=argc) printf("no filename specified\n");
-			to_file=fopen(argv[++i], "w");
+			to_filename=argv[++i];
 		}
 		else if(!strcmp(argv[i], "--to=listen-on")) {
 			input=TO_SOCKET;
@@ -228,12 +264,15 @@ int main(int argc, char **argv) {
 		else if(from_port == 0 && from_file == NULL && (from_file = fopen(argv[i],"r"))) {
 			input = FROM_FILE;
 		}
-		else if(to_file = fopen(argv[i],"r")) {
+		else if(to_file = fopen(argv[i],"w")) {
 			output = TO_FILE;
 		}
 		i++;
 	}
-	if(output != TO_SDL) {
+
+	updaters[TO_SDL]=updater_sdl;
+	updaters[TO_SDL_PNGS]=updater_sdl_pngs;
+	if(output != TO_SDL && output != TO_SDL_PNGS) {
 		printf("sorry, this output method is not implemented. defaulting to SDL output.\n");
 		output = TO_SDL;
 	}
@@ -244,10 +283,12 @@ int main(int argc, char **argv) {
 	SDL_Surface *screen, *canvas;
 	if(input==FROM_SOCKET || output==TO_SOCKET) {
 		init_video_net();
-	} else {
+	} else if (output == TO_SDL || output == TO_SDL_PNGS) {
 		init_video();
 	}
-	set_canvas_cairosdl(&screen, &canvas);
+	if (output == TO_SDL || output == TO_SDL_PNGS) {
+		set_canvas_cairosdl(&screen, &canvas);
+	}
 	if(input==FROM_SOCKET) {
 		rendert = SDL_CreateThread(from_socket_render_thread, argv);
 	} else if (input==FROM_FILE) {

@@ -38,5 +38,7 @@ typedef enum {
 	CELL_TYPE_DELETE_S
 } cell_type_t;
 
-int next_command_char(char c, cairo_t* cr);
+typedef void (*updater_t)(cairo_t*);
+
+int next_command_char(char c, cairo_t* cr, updater_t update_screen);
 #endif

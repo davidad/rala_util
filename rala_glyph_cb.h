@@ -14,6 +14,6 @@ typedef struct {
 	arrow_dir_t arrow_dir;
 } set_arrow_cb_t;
 
-void set_cell_cb (void* v, int x, int y);
-void set_arrow_cb(void* v, int x, int y);
+void set_cell_cb (void* v, affine_t t);
+void set_arrow_cb(void* v, affine_t t);
 #endif

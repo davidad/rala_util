@@ -1,16 +1,7 @@
 #include "rala_glyph_cb.h"
 #include "commands.h"
 
-void update_screen(cairo_t *cr) {
-	SDL_Event event;
-	cairosdl_surface_flush(cairo_get_target(cr));
-	if(SDL_PeepEvents(&event, 1, SDL_PEEKEVENT, SDL_EVENTMASK(SDL_USEREVENT)) == 0) {
-		event.type = SDL_USEREVENT;
-		SDL_PushEvent(&event);
-	}
-}
-
-int next_command_char(char c, cairo_t* cr) {
+int next_command_char(char c, cairo_t* cr, updater_t update_screen) {
 	static enum {
 		NORMAL,
 		ARROW,
@@ -126,18 +117,19 @@ int next_command_char(char c, cairo_t* cr) {
 					update_screen(cr);
 					break;
 				case 'W':
+					arrow_dir = ARROW_DIR_W;
+					state = ARROW;
+					break;
 				case 'N':
+					arrow_dir = ARROW_DIR_N;
+					state = ARROW;
+					break;
 				case 'E':
+					arrow_dir = ARROW_DIR_E;
+					state = ARROW;
+					break;
 				case 'S':
-					if(applyd_x(transforms->cur,c)<0) {
-						arrow_dir = ARROW_DIR_W;
-					} else if(applyd_x(transforms->cur,c)>0) {
-						arrow_dir = ARROW_DIR_E;
-					} else if(applyd_y(transforms->cur,c)<0) {
-						arrow_dir = ARROW_DIR_S;
-					} else if(applyd_y(transforms->cur,c)>0) {
-						arrow_dir = ARROW_DIR_N;
-					}
+					arrow_dir = ARROW_DIR_S;
 					state = ARROW;
 					break;
 				case '-':

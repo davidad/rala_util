@@ -168,7 +168,7 @@ void affine_operate(affine_stack_t *transforms, affine_operator_t op, void* data
 	affine_par_t* par_iter;
 	int x, y;
 	if(transforms->par_next == NULL) {
-		op(data, transforms->cur.wx, transforms->cur.wy);
+		op(data, transforms->cur);
 	} else {
 		affine_stack_t* j = transforms;
 		while(j != NULL && j->par_next != NULL) {
@@ -185,7 +185,7 @@ void affine_operate(affine_stack_t *transforms, affine_operator_t op, void* data
 				composite = affine_compose(affine_translate(j->par_cur->x_cur*j->par_cur->x_offset,j->par_cur->y_cur*j->par_cur->y_offset), composite);
 				j = j->prev;
 			}
-			op(data, composite.wx, composite.wy);
+			op(data, composite);
 			j = transforms;
 			while(j != NULL && j->par_cur != NULL && j->par_cur->par_next == NULL && j->par_cur->x_cur == j->par_cur->x_range_max && j->par_cur->y_cur == j->par_cur->y_range_max) {
 				j->par_cur = j->par_next;

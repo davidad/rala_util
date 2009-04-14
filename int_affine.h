@@ -58,7 +58,7 @@ void affine_start_split(affine_stack_t **p);
 int affine_end_split(affine_stack_t **p);
 void affine_transform(affine_stack_t **p, affine_t t);
 
-typedef void (*affine_operator_t)(void*, int, int);
+typedef void (*affine_operator_t)(void*, affine_t);
 void affine_operate(affine_stack_t *transforms, affine_operator_t op, void* data);
 
 #endif
