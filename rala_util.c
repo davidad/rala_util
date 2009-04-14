@@ -11,6 +11,8 @@ cairo_t *cr;
 SDL_Thread *rendert;
 int width = 1024;
 int height = 1024;
+int center_x = 0;
+int center_y = 0;
 enum output_type {TO_SDL, TO_SDL_PNGS, TO_PNG, TO_PS, TO_EPS, TO_PDF, TO_SOCKET, TO_FILE, OUTPUT_TYPE_LENGTH} output = TO_SDL;
 enum input_type {FROM_SOCKET, FROM_FILE, INPUT_TYPE_LENGTH} input = FROM_SOCKET;
 FILE* to_file = NULL;
@@ -20,7 +22,7 @@ int to_port = 0;
 FILE* from_file = NULL;
 char* from_hostname = NULL;
 int from_port = 0;
-int cell_size = 30;
+int cell_size = 40;
 
 void updater_sdl(cairo_t *cr) {
 	SDL_Event event;
@@ -52,6 +54,7 @@ void set_up_drawing_environment(void) {
 	
 	cairo_translate(cr, width/2-cell_size/2, height/2-cell_size/2);
 	cairo_scale (cr, cell_size, cell_size);
+	cairo_translate(cr, -center_x*2, -center_y*2);
 
 	clear(cr, width, height);
 	updaters[output](cr);
@@ -166,6 +169,12 @@ int main(int argc, char **argv) {
 		}
 		else if(!strcmp(argv[i], "--blank=none")) {
 			blank_cell_style=NONE;
+		}
+		else if(!strncmp(argv[i], "--center-x=", 10)) {
+			center_x=atoi(strchr(argv[i],'=')+1);
+		}
+		else if(!strncmp(argv[i], "--center-y=", 10)) {
+			center_y=atoi(strchr(argv[i],'=')+1);
 		}
 		else if(!strncmp(argv[i], "--width=", 8)) {
 			width=atoi(strchr(argv[i],'=')+1);

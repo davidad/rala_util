@@ -580,13 +580,13 @@ void clear(cairo_t *cr, int w, int h) {
 		double user_x = 0.0;
 		double user_y = 0.0;
 		cairo_device_to_user(cr, &user_x, &user_y);
-		int user_x_int = floor(user_x);
-		int user_y_int = floor(user_y);
+		int user_x_int = floor(user_x/2)*2;
+		int user_y_int = floor(user_y/2)*2;
 		int x,y;
-		for(y=user_y_int; y<user_y_int+user_h_int; y++) {
-			for(x=user_x_int; x<user_x_int+user_w_int; x++) {
+		for(y=user_y_int; y<user_y_int+user_h_int; y+=2) {
+			for(x=user_x_int; x<user_x_int+user_w_int; x+=2) {
 				cairo_save(cr);
-				cairo_translate(cr,x*2,y*2);
+				cairo_translate(cr,x,y);
 				blank_cell(cr);
 				if(blank_cell_style==HOLLOW_STEM) {
 					hollow_stem_cell_glyph(cr);
