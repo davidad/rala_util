@@ -16,7 +16,6 @@ void xor_gate_glyph(cairo_t *cr) {
 	cairo_new_path(cr);
 	cairo_move_to(cr,0,0);
 	cairo_arc(cr,-0.5,0.5,sqrt(2.0)/2,-M_PI/4,M_PI/4);
-	cairo_line_to(cr,0.5,1.0);
 	cairo_save(cr);
 	cairo_scale(cr,0.85,2.0);
 	double angle = asin(3.0/4);
@@ -59,7 +58,6 @@ void or_gate_glyph(cairo_t *cr) {
 	cairo_new_path(cr);
 	cairo_move_to(cr,0,0);
 	cairo_arc(cr,-0.5,0.5,sqrt(2.0)/2,-M_PI/4,M_PI/4);
-	cairo_line_to(cr,0.5,1.0);
 	cairo_save(cr);
 	cairo_scale(cr,0.9,2.0);
 	double angle = asin(3.0/4);
