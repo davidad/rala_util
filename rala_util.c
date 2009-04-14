@@ -3,17 +3,21 @@
 #include <SDL/SDL.h>
 #include <SDL/SDL_thread.h>
 #include <SDL/SDL_net.h>
+#include <cairo/cairo.h>
+#include <cairo/cairo-ps.h>
+#include <cairo/cairo-pdf.h>
+#include <cairo/cairo-svg.h>
 #include "rala_glyphs.h"
 #include "cairosdl.h"
 #include "commands.h"
 
 cairo_t *cr;
 SDL_Thread *rendert;
-int width = 1024;
-int height = 1024;
+int width = -1;
+int height = -1;
 int center_x = 0;
 int center_y = 0;
-enum output_type {TO_SDL, TO_SDL_PNGS, TO_PNG, TO_PS, TO_EPS, TO_PDF, TO_SOCKET, TO_FILE, OUTPUT_TYPE_LENGTH} output = TO_SDL;
+enum output_type {TO_SDL, TO_SDL_PNGS, TO_PNG, TO_PS, TO_EPS, TO_PDF, TO_SVG, TO_SOCKET, TO_FILE, OUTPUT_TYPE_LENGTH} output = TO_SDL;
 enum input_type {FROM_SOCKET, FROM_FILE, INPUT_TYPE_LENGTH} input = FROM_SOCKET;
 FILE* to_file = NULL;
 char* to_filename = NULL;
@@ -23,6 +27,54 @@ FILE* from_file = NULL;
 char* from_hostname = NULL;
 int from_port = 0;
 int cell_size = 40;
+
+void set_canvas_cairosdl(SDL_Surface **screen, SDL_Surface **canvas) {
+	if(width==-1) width=1024;
+	if(height==-1) height=1024;
+	*screen = SDL_SetVideoMode(width,height,32,SDL_HWSURFACE|SDL_ASYNCBLIT|SDL_RESIZABLE);
+	*canvas = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32, CAIROSDL_RMASK, CAIROSDL_GMASK, CAIROSDL_BMASK, 0);
+	cr = cairosdl_create(*canvas);
+}
+
+void set_canvas_cairo_image() {
+	if(width==-1) width=1024;
+	if(height==-1) height=1024;
+	cairo_surface_t* surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+	cr = cairo_create(surface);
+}
+
+void set_canvas_cairo_ps() {
+	if(width==-1) width=612;
+	if(height==-1) height=792;
+	cairo_surface_t *surface;
+	surface = cairo_ps_surface_create(to_filename, (double)width, (double)height);
+	cr = cairo_create(surface);
+}
+
+void set_canvas_cairo_eps() {
+	if(width==-1) width=600;
+	if(height==-1) height=600;
+	cairo_surface_t *surface;
+	surface = cairo_ps_surface_create(to_filename, (double)width, (double)height);
+	cairo_ps_surface_set_eps(surface, 1);
+	cr = cairo_create(surface);
+}
+
+void set_canvas_cairo_pdf() {
+	if(width==-1) width=600;
+	if(height==-1) height=600;
+	cairo_surface_t *surface;
+	surface = cairo_pdf_surface_create(to_filename, (double)width, (double)height);
+	cr = cairo_create(surface);
+}
+
+void set_canvas_cairo_svg() {
+	if(width==-1) width=600;
+	if(height==-1) height=600;
+	cairo_surface_t *surface;
+	surface = cairo_svg_surface_create(to_filename, (double)width, (double)height);
+	cr = cairo_create(surface);
+}
 
 void updater_nop(cairo_t *cr) {
 }
@@ -49,8 +101,23 @@ void updater_sdl_pngs(cairo_t *cr) {
 	cairo_surface_write_to_png(cairo_get_target(cr), filename);
 }
 
+void updater_ps(cairo_t *cr) {
+	cairo_copy_page(cr);
+}
+
 void atexit_write_png(void) {
 	cairo_surface_write_to_png(cairo_get_target(cr), to_filename);
+}
+
+void atexit_write_ps(void) {
+	cairo_surface_destroy(cairo_get_target(cr));
+	cairo_surface_finish(cairo_get_target(cr));
+}
+
+void atexit_write_pdf(void) {
+	cairo_show_page(cr);
+	cairo_surface_destroy(cairo_get_target(cr));
+	cairo_surface_finish(cairo_get_target(cr));
 }
 
 updater_t updaters[OUTPUT_TYPE_LENGTH];
@@ -61,7 +128,7 @@ void set_up_drawing_environment(void) {
 	
 	cairo_translate(cr, width/2-cell_size/2, height/2-cell_size/2);
 	cairo_scale (cr, cell_size, cell_size);
-	cairo_translate(cr, -center_x*2, -center_y*2);
+	cairo_translate(cr, -center_x, center_y);
 
 	clear(cr, width, height);
 	updaters[output](cr);
@@ -127,17 +194,6 @@ void init_video_net(void) {
 	atexit(SDLNet_Quit);
 }
 
-void set_canvas_cairosdl(SDL_Surface **screen, SDL_Surface **canvas) {
-	*screen = SDL_SetVideoMode(width,height,32,SDL_HWSURFACE|SDL_ASYNCBLIT|SDL_RESIZABLE);
-	*canvas = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32, CAIROSDL_RMASK, CAIROSDL_GMASK, CAIROSDL_BMASK, 0);
-	cr = cairosdl_create(*canvas);
-}
-
-void set_canvas_cairo_image() {
-	cairo_surface_t* surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
-	cr = cairo_create(surface);
-}
-
 void sdl_event_loop(SDL_Surface **screen, SDL_Surface **canvas) {
 	SDL_Event event;
 	while(SDL_WaitEvent (&event)) {
@@ -186,10 +242,16 @@ int main(int argc, char **argv) {
 			blank_cell_style=NONE;
 		}
 		else if(!strncmp(argv[i], "--center-x=", 10)) {
-			center_x=atoi(strchr(argv[i],'=')+1);
+			center_x=2*atoi(strchr(argv[i],'=')+1);
+			if(strstr(argv[i], ".5")) {
+				center_x++;
+			}
 		}
 		else if(!strncmp(argv[i], "--center-y=", 10)) {
-			center_y=atoi(strchr(argv[i],'=')+1);
+			center_y=2*atoi(strchr(argv[i],'=')+1);
+			if(strstr(argv[i], ".5")) {
+				center_y++;
+			}
 		}
 		else if(!strncmp(argv[i], "--width=", 8)) {
 			width=atoi(strchr(argv[i],'=')+1);
@@ -225,6 +287,11 @@ int main(int argc, char **argv) {
 		}
 		else if(!strcmp(argv[i], "--to=pdf")) {
 			output=TO_PDF;
+			if(i+1>=argc) printf("no filename specified\n");
+			to_filename=argv[++i];
+		}
+		else if(!strcmp(argv[i], "--to=svg")) {
+			output=TO_SVG;
 			if(i+1>=argc) printf("no filename specified\n");
 			to_filename=argv[++i];
 		}
@@ -288,7 +355,7 @@ int main(int argc, char **argv) {
 		else if(from_port == 0 && from_file == NULL && (from_file = fopen(argv[i],"r"))) {
 			input = FROM_FILE;
 		}
-		else if(to_file = fopen(argv[i],"w")) {
+		else if(to_file = fopen(argv[i],"a")) {
 			output = TO_FILE;
 		}
 		i++;
@@ -296,8 +363,12 @@ int main(int argc, char **argv) {
 
 	updaters[TO_SDL]=updater_sdl;
 	updaters[TO_SDL_PNGS]=updater_sdl_pngs;
+	updaters[TO_PS]=updater_ps;
+	updaters[TO_PDF]=updater_nop;
+	updaters[TO_EPS]=updater_nop;
 	updaters[TO_PNG]=updater_nop;
-	if(output != TO_SDL && output != TO_SDL_PNGS && output != TO_PNG) {
+	updaters[TO_SVG]=updater_nop;
+	if(output == TO_FILE || output == TO_SOCKET) {
 		printf("sorry, this output method is not implemented. defaulting to SDL output.\n");
 		output = TO_SDL;
 	}
@@ -316,7 +387,20 @@ int main(int argc, char **argv) {
 	} else if (output == TO_PNG) {
 		set_canvas_cairo_image();
 		atexit(atexit_write_png);
+	} else if (output == TO_PS) {
+		set_canvas_cairo_ps();
+		atexit(atexit_write_ps);
+	} else if (output == TO_EPS) {
+		set_canvas_cairo_eps();
+		atexit(atexit_write_ps);
+	} else if (output == TO_PDF) {
+		set_canvas_cairo_pdf();
+		atexit(atexit_write_pdf);
+	} else if (output == TO_SVG) {
+		set_canvas_cairo_svg();
+		atexit(atexit_write_ps);
 	}
+
 	if(input==FROM_SOCKET) {
 		rendert = SDL_CreateThread(from_socket_render_thread, argv);
 	} else if (input==FROM_FILE) {
