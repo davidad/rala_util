@@ -24,6 +24,9 @@ char* from_hostname = NULL;
 int from_port = 0;
 int cell_size = 40;
 
+void updater_nop(cairo_t *cr) {
+}
+
 void updater_sdl(cairo_t *cr) {
 	SDL_Event event;
 	cairosdl_surface_flush(cairo_get_target(cr));
@@ -44,6 +47,10 @@ void updater_sdl_pngs(cairo_t *cr) {
 	char filename[256];
 	sprintf(filename, "%s%.5d.png\0", to_filename, filenum++);
 	cairo_surface_write_to_png(cairo_get_target(cr), filename);
+}
+
+void atexit_write_png(void) {
+	cairo_surface_write_to_png(cairo_get_target(cr), to_filename);
 }
 
 updater_t updaters[OUTPUT_TYPE_LENGTH];
@@ -98,6 +105,9 @@ int from_file_render_thread (void* data) {
 	while((buf = fgetc(from_file)) != EOF) {
 		next_command_char(buf, cr, updaters[output]);
 	}
+	if(output != TO_SDL && output != TO_SDL_PNGS) {
+		exit(0);
+	}
 }
 
 void init_video(void) {
@@ -121,6 +131,11 @@ void set_canvas_cairosdl(SDL_Surface **screen, SDL_Surface **canvas) {
 	*screen = SDL_SetVideoMode(width,height,32,SDL_HWSURFACE|SDL_ASYNCBLIT|SDL_RESIZABLE);
 	*canvas = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32, CAIROSDL_RMASK, CAIROSDL_GMASK, CAIROSDL_BMASK, 0);
 	cr = cairosdl_create(*canvas);
+}
+
+void set_canvas_cairo_image() {
+	cairo_surface_t* surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+	cr = cairo_create(surface);
 }
 
 void sdl_event_loop(SDL_Surface **screen, SDL_Surface **canvas) {
@@ -281,7 +296,8 @@ int main(int argc, char **argv) {
 
 	updaters[TO_SDL]=updater_sdl;
 	updaters[TO_SDL_PNGS]=updater_sdl_pngs;
-	if(output != TO_SDL && output != TO_SDL_PNGS) {
+	updaters[TO_PNG]=updater_nop;
+	if(output != TO_SDL && output != TO_SDL_PNGS && output != TO_PNG) {
 		printf("sorry, this output method is not implemented. defaulting to SDL output.\n");
 		output = TO_SDL;
 	}
@@ -297,13 +313,22 @@ int main(int argc, char **argv) {
 	}
 	if (output == TO_SDL || output == TO_SDL_PNGS) {
 		set_canvas_cairosdl(&screen, &canvas);
+	} else if (output == TO_PNG) {
+		set_canvas_cairo_image();
+		atexit(atexit_write_png);
 	}
 	if(input==FROM_SOCKET) {
 		rendert = SDL_CreateThread(from_socket_render_thread, argv);
 	} else if (input==FROM_FILE) {
-		rendert = SDL_CreateThread(from_file_render_thread, argv);
+		if(output == TO_SDL || output == TO_SDL_PNGS) {
+			rendert = SDL_CreateThread(from_file_render_thread, argv);
+		} else {
+			from_file_render_thread(argv);
+		}
 	}
-	sdl_event_loop(&screen, &canvas);
+	if(output==TO_SDL || output == TO_SDL_PNGS) {
+		sdl_event_loop(&screen, &canvas);
+	}
 		
 	return 0;
 }
