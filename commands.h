@@ -1,6 +1,4 @@
 #include <stdio.h>
-#include <SDL/SDL.h>
-#include "rala_glyphs.h"
 #include "int_affine.h"
 
 #ifndef COMMANDS_
@@ -38,7 +36,19 @@ typedef enum {
 	CELL_TYPE_DELETE_S
 } cell_type_t;
 
-typedef void (*updater_t)(cairo_t*);
+typedef struct {
+	void* cl;
+	cell_type_t cell_type;
+} set_cell_cb_t;
 
-int next_command_char(char c, cairo_t* cr, updater_t update_screen);
+typedef struct {
+	void* cl;
+	arrow_type_t arrow_type;
+	arrow_dir_t arrow_dir;
+} set_arrow_cb_t;
+
+typedef void (*updater_t)(void*);
+typedef void (*clear_t)(void*);
+
+int next_command_char(char c, void* cl, affine_operator_t set_cell_cb, affine_operator_t set_arrow_cb, clear_t clear, updater_t update_screen);
 #endif

@@ -36,5 +36,5 @@ void hollow_stem_cell_glyph(cairo_t *cr);
 
 typedef enum {NONE, HOLLOW_STEM, STEM} blank_cell_style_t;
 blank_cell_style_t blank_cell_style;
-void clear(cairo_t *cr, int w, int h);
+void clear(void *cl);
 #endif

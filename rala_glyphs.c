@@ -567,7 +567,10 @@ void blank_cell(cairo_t *cr) {
 
 blank_cell_style_t blank_cell_style = HOLLOW_STEM;
 
-void clear(cairo_t *cr, int w, int h) {
+void clear(void *cl) {
+	cairo_t* cr = (cairo_t*)cl;
+	int w = cairo_image_surface_get_width(cairo_get_target(cr));
+	int h = cairo_image_surface_get_height(cairo_get_target(cr));
 	if(blank_cell_style > NONE) {
 		double user_w = w;
 		double user_h = h;

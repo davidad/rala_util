@@ -21,19 +21,19 @@ affine_t affine_translate(int x, int y) {
 }
 
 int apply_x(affine_t t, int x, int y) {
-	return t.xx*x + t.xy*y + t.wx;
+	return t.xx*x + t.yx*y + t.wx;
 }
 
 int apply_y(affine_t t, int x, int y) {
-	return t.yx*x + t.yy*y + t.wy;
+	return t.xy*x + t.yy*y + t.wy;
 }
 
 int applyv_x(affine_t t, int x, int y) {
-	return t.xx*x + t.xy*y;
+	return t.xx*x + t.yx*y;
 }
 
 int applyv_y(affine_t t, int x, int y) {
-	return t.yx*x + t.yy*y;
+	return t.xy*x + t.yy*y;
 }
 
 int applyd_x(affine_t t, char d) {

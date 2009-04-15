@@ -1,7 +1,7 @@
 #include "rala_glyph_cb.h"
 #include "commands.h"
 
-int next_command_char(char c, cairo_t* cr, updater_t update_screen) {
+int next_command_char(char c, void* cl, affine_operator_t set_cell_cb, affine_operator_t set_arrow_cb, clear_t clear, updater_t update_screen) {
 	static enum {
 		NORMAL,
 		ARROW,
@@ -27,7 +27,7 @@ int next_command_char(char c, cairo_t* cr, updater_t update_screen) {
 	int x, y;
 	set_cell_cb_t cell_cb_data;
 	set_arrow_cb_t arrow_cb_data;
-	cell_cb_data.cr = arrow_cb_data.cr = cr;
+	cell_cb_data.cl = arrow_cb_data.cl = cl;
 
 	switch(state) {
 		case COMMENT:
@@ -39,8 +39,8 @@ int next_command_char(char c, cairo_t* cr, updater_t update_screen) {
 			} else {
 				command_buf[command_buf_i] = '\0';
 				if(!strcmp(command_buf, "clear") || !strcmp(command_buf, "CLEAR")) {
-					clear(cr, cairo_image_surface_get_width(cairo_get_target(cr)), cairo_image_surface_get_height(cairo_get_target(cr)));
-					update_screen(cr);
+					clear(cl);
+					update_screen(cl);
 				}
 				state = NORMAL;
 			}
@@ -74,47 +74,47 @@ int next_command_char(char c, cairo_t* cr, updater_t update_screen) {
 				case 'n':
 					cell_cb_data.cell_type=CELL_TYPE_NAND;
 					affine_operate(transforms,set_cell_cb,&cell_cb_data);
-					update_screen(cr);
+					update_screen(cl);
 					break;
 				case 'a':
 					cell_cb_data.cell_type=CELL_TYPE_AND;
 					affine_operate(transforms,set_cell_cb,&cell_cb_data);
-					update_screen(cr);
+					update_screen(cl);
 					break;
 				case 'o':
 					cell_cb_data.cell_type=CELL_TYPE_OR;
 					affine_operate(transforms,set_cell_cb,&cell_cb_data);
-					update_screen(cr);
+					update_screen(cl);
 					break;
 				case 'x':
 					cell_cb_data.cell_type=CELL_TYPE_XOR;
 					affine_operate(transforms,set_cell_cb,&cell_cb_data);
-					update_screen(cr);
+					update_screen(cl);
 					break;
 				case 'c':
 					cell_cb_data.cell_type=CELL_TYPE_COPY_W;
 					affine_operate(transforms,set_cell_cb,&cell_cb_data);
-					update_screen(cr);
+					update_screen(cl);
 					break;
 				case 'd':
 					cell_cb_data.cell_type=CELL_TYPE_DELETE_W;
 					affine_operate(transforms,set_cell_cb,&cell_cb_data);
-					update_screen(cr);
+					update_screen(cl);
 					break;
 				case 'w':
 					cell_cb_data.cell_type=CELL_TYPE_WIRE;
 					affine_operate(transforms,set_cell_cb,&cell_cb_data);
-					update_screen(cr);
+					update_screen(cl);
 					break;
 				case 'C':
 					cell_cb_data.cell_type=CELL_TYPE_CROSSOVER;
 					affine_operate(transforms,set_cell_cb,&cell_cb_data);
-					update_screen(cr);
+					update_screen(cl);
 					break;
 				case 's':
 					cell_cb_data.cell_type=CELL_TYPE_STEM;
 					affine_operate(transforms,set_cell_cb,&cell_cb_data);
-					update_screen(cr);
+					update_screen(cl);
 					break;
 				case 'W':
 					arrow_dir = ARROW_DIR_W;
@@ -168,29 +168,28 @@ int next_command_char(char c, cairo_t* cr, updater_t update_screen) {
 					arrow_cb_data.arrow_type=ARROW_TYPE_0;
 					arrow_cb_data.arrow_dir=arrow_dir;
 					affine_operate(transforms,set_arrow_cb,&arrow_cb_data);
-					update_screen(cr);
+					update_screen(cl);
 					break;
 				case '1':
 					arrow_cb_data.arrow_type=ARROW_TYPE_1;
 					arrow_cb_data.arrow_dir=arrow_dir;
 					affine_operate(transforms,set_arrow_cb,&arrow_cb_data);
-					update_screen(cr);
+					update_screen(cl);
 					break;
 				case 'x':
 				case 'X':
 					arrow_cb_data.arrow_type=ARROW_TYPE_X;
 					arrow_cb_data.arrow_dir=arrow_dir;
 					affine_operate(transforms,set_arrow_cb,&arrow_cb_data);
-					update_screen(cr);
+					update_screen(cl);
 					break;
 				case '_':
 					arrow_cb_data.arrow_type=ARROW_TYPE_NONE;
 					arrow_cb_data.arrow_dir=arrow_dir;
 					affine_operate(transforms,set_arrow_cb,&arrow_cb_data);
-					update_screen(cr);
+					update_screen(cl);
 					break;
 				default:
-					cairo_restore(cr);
 					break;
 			}
 			state = NORMAL;
@@ -350,7 +349,7 @@ int next_command_char(char c, cairo_t* cr, updater_t update_screen) {
 					break;
 				default:
 					state = NORMAL;
-					next_command_char(c,cr,update_screen);
+					next_command_char(c,cl,set_cell_cb,set_arrow_cb,clear,update_screen);
 					break;
 			}
 			break;
@@ -389,7 +388,7 @@ int next_command_char(char c, cairo_t* cr, updater_t update_screen) {
 					break;
 				default:
 					state = NORMAL;
-					next_command_char(c,cr,update_screen);
+					next_command_char(c,cl,set_cell_cb,set_arrow_cb,clear,update_screen);
 					break;
 			}
 			break;
@@ -419,7 +418,7 @@ int next_command_char(char c, cairo_t* cr, updater_t update_screen) {
 					break;
 				default:
 					state = NORMAL;
-					next_command_char(c,cr,update_screen);
+					next_command_char(c,cl,set_cell_cb,set_arrow_cb,clear,update_screen);
 					break;
 			}
 			break;
@@ -465,7 +464,7 @@ int next_command_char(char c, cairo_t* cr, updater_t update_screen) {
 					break;
 				default:
 					state = NORMAL;
-					next_command_char(c,cr,update_screen);
+					next_command_char(c,cl,set_cell_cb,set_arrow_cb,clear,update_screen);
 					break;
 			}
 			break;

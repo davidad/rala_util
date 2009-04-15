@@ -1,6 +1,7 @@
 #include "rala_glyph_cb.h"
 #include "rala_glyphs.h"
 #include "int_affine.h"
+#include <cairo/cairo.h>
 
 arrow_dir_t arrow_rotate(affine_t t, arrow_dir_t arrow_dir) {
 	int x, y;
@@ -11,7 +12,7 @@ arrow_dir_t arrow_rotate(affine_t t, arrow_dir_t arrow_dir) {
 			break;
 		case ARROW_DIR_S:
 			x = 0;
-			y = 1;
+			y = -1;
 			break;
 		case ARROW_DIR_E:
 			x = 1;
@@ -19,7 +20,7 @@ arrow_dir_t arrow_rotate(affine_t t, arrow_dir_t arrow_dir) {
 			break;
 		case ARROW_DIR_N:
 			x = 0;
-			y = -1;
+			y = 1;
 			break;
 	}
 	if(applyv_x(t,x,y)>0) {
@@ -40,7 +41,7 @@ void setup_arrow(cairo_t* cr, arrow_dir_t arrow_dir) {
 			break;
 		case ARROW_DIR_S:
 			cairo_translate(cr,0.5,0.5);
-			cairo_rotate(cr,M_PI/2);
+			cairo_rotate(cr,3*M_PI/2);
 			cairo_translate(cr,-1.4,-0.4);
 			break;
 		case ARROW_DIR_E:
@@ -50,14 +51,14 @@ void setup_arrow(cairo_t* cr, arrow_dir_t arrow_dir) {
 			break;
 		case ARROW_DIR_N:
 			cairo_translate(cr,0.5,0.5);
-			cairo_rotate(cr,3*M_PI/2);
+			cairo_rotate(cr,M_PI/2);
 			cairo_translate(cr,-1.4,-0.4);
 			break;
 	}
 }
 
-void set_cell_cb(void* v, affine_t t) {
-	cairo_t *cr = ((set_cell_cb_t*)v)->cr;
+void rala_glyph_set_cell_cb(void* v, affine_t t) {
+	cairo_t *cr = (cairo_t*)(((set_cell_cb_t*)v)->cl);
 	cairo_save(cr);
 	cairo_translate(cr,2*t.wx, -2*t.wy);
 	blank_cell(cr);
@@ -113,8 +114,8 @@ void set_cell_cb(void* v, affine_t t) {
 	cairo_restore(cr);
 }
 
-void set_arrow_cb(void* v, affine_t t) {
-	cairo_t *cr = ((set_arrow_cb_t*)v)->cr;
+void rala_glyph_set_arrow_cb(void* v, affine_t t) {
+	cairo_t *cr = (cairo_t*)(((set_cell_cb_t*)v)->cl);
 	cairo_save(cr);
 	cairo_translate(cr,2*t.wx, -2*t.wy);
 	setup_arrow(cr,arrow_rotate(t, ((set_arrow_cb_t*)v)->arrow_dir));

@@ -8,6 +8,7 @@
 #include <cairo/cairo-pdf.h>
 #include <cairo/cairo-svg.h>
 #include "rala_glyphs.h"
+#include "rala_glyph_cb.h"
 #include "cairosdl.h"
 #include "commands.h"
 
@@ -76,10 +77,11 @@ void set_canvas_cairo_svg() {
 	cr = cairo_create(surface);
 }
 
-void updater_nop(cairo_t *cr) {
+void updater_nop(void *cl) {
 }
 
-void updater_sdl(cairo_t *cr) {
+void updater_sdl(void *cl) {
+	cairo_t* cr = (cairo_t*) cl;
 	SDL_Event event;
 	cairosdl_surface_flush(cairo_get_target(cr));
 	if(SDL_PeepEvents(&event, 1, SDL_PEEKEVENT, SDL_EVENTMASK(SDL_USEREVENT)) == 0) {
@@ -88,7 +90,8 @@ void updater_sdl(cairo_t *cr) {
 	}
 }
 
-void updater_sdl_pngs(cairo_t *cr) {
+void updater_sdl_pngs(void* cl) {
+	cairo_t* cr = (cairo_t*) cl;
 	static int filenum = 0;
 	SDL_Event event;
 	cairosdl_surface_flush(cairo_get_target(cr));
@@ -101,7 +104,8 @@ void updater_sdl_pngs(cairo_t *cr) {
 	cairo_surface_write_to_png(cairo_get_target(cr), filename);
 }
 
-void updater_ps(cairo_t *cr) {
+void updater_ps(void* cl) {
+	cairo_t* cr = (cairo_t*) cl;
 	cairo_copy_page(cr);
 }
 
@@ -130,7 +134,7 @@ void set_up_drawing_environment(void) {
 	cairo_scale (cr, cell_size, cell_size);
 	cairo_translate(cr, -center_x, center_y);
 
-	clear(cr, width, height);
+	clear(cr);
 	updaters[output](cr);
 }
 
@@ -160,7 +164,7 @@ int from_socket_render_thread (void* data) {
 	//Wait for commands
 	char buf;
 	while(SDLNet_TCP_Recv(sock, &buf, 1) > 0) {
-		next_command_char(buf, cr, updaters[output]);
+		next_command_char(buf, cr, rala_glyph_set_cell_cb, rala_glyph_set_arrow_cb, clear, updaters[output]);
 	}
 }
 
@@ -170,7 +174,7 @@ int from_file_render_thread (void* data) {
 	//Read commands
 	char buf;
 	while((buf = fgetc(from_file)) != EOF) {
-		next_command_char(buf, cr, updaters[output]);
+		next_command_char(buf, cr, rala_glyph_set_cell_cb, rala_glyph_set_arrow_cb, clear, updaters[output]);
 	}
 	if(output != TO_SDL && output != TO_SDL_PNGS) {
 		exit(0);
