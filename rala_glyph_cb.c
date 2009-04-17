@@ -61,7 +61,6 @@ void rala_glyph_set_cell_cb(void* v, affine_t t) {
 	cairo_t *cr = (cairo_t*)(((set_cell_cb_t*)v)->cl);
 	cairo_save(cr);
 	cairo_translate(cr,2*t.wx, -2*t.wy);
-	blank_cell(cr);
 	switch(((set_cell_cb_t*)v)->cell_type) {
 		case CELL_TYPE_BLANK:
 			break;

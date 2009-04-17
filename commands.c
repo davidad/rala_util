@@ -190,6 +190,8 @@ int next_command_char(char c, void* cl, affine_operator_t set_cell_cb, affine_op
 					update_screen(cl);
 					break;
 				default:
+					state = NORMAL;
+					next_command_char(c,cl,set_cell_cb,set_arrow_cb,clear,update_screen);
 					break;
 			}
 			state = NORMAL;
