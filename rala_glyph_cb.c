@@ -1,38 +1,8 @@
 #include "rala_glyph_cb.h"
 #include "rala_glyphs.h"
 #include "int_affine.h"
+#include "commands.h"
 #include <cairo/cairo.h>
-
-arrow_dir_t arrow_rotate(affine_t t, arrow_dir_t arrow_dir) {
-	int x, y;
-	switch(arrow_dir) {
-		case ARROW_DIR_W:
-			x = -1;
-			y = 0;
-			break;
-		case ARROW_DIR_S:
-			x = 0;
-			y = -1;
-			break;
-		case ARROW_DIR_E:
-			x = 1;
-			y = 0;
-			break;
-		case ARROW_DIR_N:
-			x = 0;
-			y = 1;
-			break;
-	}
-	if(applyv_x(t,x,y)>0) {
-		return ARROW_DIR_E;
-	} else if (applyv_y(t,x,y)>0) {
-		return ARROW_DIR_N;
-	} else if (applyv_x(t,x,y)<0) {
-		return ARROW_DIR_W;
-	}
-	return ARROW_DIR_S;
-}
-
 
 void setup_arrow(cairo_t* cr, arrow_dir_t arrow_dir) {
 	switch(arrow_dir) {
@@ -61,7 +31,6 @@ void rala_glyph_set_cell_cb(void* v, affine_t t) {
 	cairo_t *cr = (cairo_t*)(((set_cell_cb_t*)v)->cl);
 	cairo_save(cr);
 	cairo_translate(cr,2*t.wx, -2*t.wy);
-	blank_cell(cr);
 	switch(((set_cell_cb_t*)v)->cell_type) {
 		case CELL_TYPE_BLANK:
 			break;

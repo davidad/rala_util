@@ -190,6 +190,8 @@ int next_command_char(char c, void* cl, affine_operator_t set_cell_cb, affine_op
 					update_screen(cl);
 					break;
 				default:
+					state = NORMAL;
+					next_command_char(c,cl,set_cell_cb,set_arrow_cb,clear,update_screen);
 					break;
 			}
 			state = NORMAL;
@@ -510,4 +512,34 @@ int next_command_char(char c, void* cl, affine_operator_t set_cell_cb, affine_op
 			break;
 	}
 	return 0;
+}
+
+arrow_dir_t arrow_rotate(affine_t t, arrow_dir_t arrow_dir) {
+	int x, y;
+	switch(arrow_dir) {
+		case ARROW_DIR_W:
+			x = -1;
+			y = 0;
+			break;
+		case ARROW_DIR_S:
+			x = 0;
+			y = -1;
+			break;
+		case ARROW_DIR_E:
+			x = 1;
+			y = 0;
+			break;
+		case ARROW_DIR_N:
+			x = 0;
+			y = 1;
+			break;
+	}
+	if(applyv_x(t,x,y)>0) {
+		return ARROW_DIR_E;
+	} else if (applyv_y(t,x,y)>0) {
+		return ARROW_DIR_N;
+	} else if (applyv_x(t,x,y)<0) {
+		return ARROW_DIR_W;
+	}
+	return ARROW_DIR_S;
 }

@@ -20,6 +20,7 @@ int center_x = 0;
 int center_y = 0;
 enum output_type {TO_SDL, TO_SDL_PNGS, TO_PNG, TO_PS, TO_EPS, TO_PDF, TO_SVG, TO_SOCKET, TO_FILE, OUTPUT_TYPE_LENGTH} output = TO_SDL;
 enum input_type {FROM_SOCKET, FROM_FILE, INPUT_TYPE_LENGTH} input = FROM_SOCKET;
+int output_map = 0;
 FILE* to_file = NULL;
 char* to_filename = NULL;
 char* to_hostname = NULL;
@@ -126,14 +127,90 @@ void atexit_write_pdf(void) {
 
 updater_t updaters[OUTPUT_TYPE_LENGTH];
 
+void do_output_map(void) {
+	int w = cairo_image_surface_get_width(cairo_get_target(cr));
+	int h = cairo_image_surface_get_height(cairo_get_target(cr));
+	if(blank_cell_style > NONE) {
+		double user_w = w;
+		double user_h = h;
+		cairo_device_to_user_distance(cr, &user_w, &user_h);
+		int user_w_int = ceil(user_w)+1;
+		int user_h_int = ceil(user_h)+1;
+		double user_x = 0.0;
+		double user_y = 0.0;
+		cairo_device_to_user(cr, &user_x, &user_y);
+		int user_x_int = floor(user_x/2)*2;
+		int user_y_int = floor(user_y/2)*2;
+		int x,y;
+		double cell_size = 1.0, dummy =0.0;
+		cairo_user_to_device_distance(cr, &cell_size, &dummy);
+		double half_cell_size = cell_size/2;
+		for(y=user_y_int; y<user_y_int+user_h_int; y+=2) {
+			for(x=user_x_int; x<user_x_int+user_w_int; x+=2) {
+				int xc = x/2;
+				int yc = -y/2;
+				double x0, y0, x1, y1, xo = (double)x, yo = (double)y;
+				cairo_user_to_device(cr, &xo, &yo);
+				x1 = xo+cell_size;
+				y1 = yo+cell_size;
+				x0 = (xo<0)?0:xo;
+				y0 = (yo<0)?0:yo;
+				x1 = (x1>w)?w:x1;
+				y1 = (y1>h)?h:y1;
+				printf("<area shape=\"rect\" class=\"rala_area\" coords=\"%.0f,%.0f,%.0f,%.0f\" id=\"%d,%d;\" onmouseover=\"ralaMouseOver('%d,%d;',event)\" onmouseout=\"ralaMouseOut('%d,%d;',event)\" onclick=\"ralaClick('%d,%d;',event)\" onkeydown=\"ralaKeyDown('%d,%d;',event)\">\n", x0, y0, x1, y1, xc, yc, xc, yc, xc, yc, xc, yc, xc, yc);
+				xo-=cell_size;
+				x1=x0;
+				y1=yo+half_cell_size;
+				x0 = (xo<0)?0:xo;
+				y0 = (yo<0)?0:yo;
+				x1 = (x1>w)?w:x1;
+				y1 = (y1>h)?h:y1;
+				printf("<area shape=\"rect\" class=\"rala_area\" coords=\"%.0f,%.0f,%.0f,%.0f\" id=\"%d,%d;W\" onmouseover=\"ralaMouseOver('%d,%d;W',event)\" onmouseout=\"ralaMouseOut('%d,%d;W',event)\" onclick=\"ralaClick('%d,%d;W',event)\" onkeydown=\"ralaKeyDown('%d,%d;W',event)\">\n", x0, y0, x1, y1, xc, yc, xc, yc, xc, yc, xc, yc, xc, yc);
+				xo+=cell_size+half_cell_size;
+				yo-=cell_size;
+				x1+=cell_size;
+				y1=yo+cell_size;
+				x0 = (xo<0)?0:xo;
+				y0 = (yo<0)?0:yo;
+				x1 = (x1>w)?w:x1;
+				y1 = (y1>h)?h:y1;
+				printf("<area shape=\"rect\" class=\"rala_area\" coords=\"%.0f,%.0f,%.0f,%.0f\" id=\"%d,%d;N\" onmouseover=\"ralaMouseOver('%d,%d;N',event)\" onmouseout=\"ralaMouseOut('%d,%d;N',event)\" onclick=\"ralaClick('%d,%d;N',event)\" onkeydown=\"ralaKeyDown('%d,%d;N',event)\">\n", x0, y0, x1, y1, xc, yc, xc, yc, xc, yc, xc, yc, xc, yc);
+				xo+=half_cell_size;
+				yo+=cell_size+half_cell_size;
+				x1+=cell_size;
+				y1+=cell_size;
+				x0 = (xo<0)?0:xo;
+				y0 = (yo<0)?0:yo;
+				x1 = (x1>w)?w:x1;
+				y1 = (y1>h)?h:y1;
+				printf("<area shape=\"rect\" class=\"rala_area\" coords=\"%.0f,%.0f,%.0f,%.0f\" id=\"%d,%d;E\" onmouseover=\"ralaMouseOver('%d,%d;E',event)\" onmouseout=\"ralaMouseOut('%d,%d;E',event)\" onclick=\"ralaClick('%d,%d;E',event)\" onkeydown=\"ralaKeyDown('%d,%d;E',event)\">\n", x0, y0, x1, y1, xc, yc, xc, yc, xc, yc, xc, yc, xc, yc);
+				xo-=cell_size;
+				yo+=half_cell_size;
+				x1=xo+half_cell_size;
+				y1+=cell_size;
+				x0 = (xo<0)?0:xo;
+				y0 = (yo<0)?0:yo;
+				x1 = (x1>w)?w:x1;
+				y1 = (y1>h)?h:y1;
+				printf("<area shape=\"rect\" class=\"rala_area\" coords=\"%.0f,%.0f,%.0f,%.0f\" id=\"%d,%d;S\" onmouseover=\"ralaMouseOver('%d,%d;S',event)\" onmouseout=\"ralaMouseOut('%d,%d;S',event)\" onclick=\"ralaClick('%d,%d;S',event)\" onkeydown=\"ralaKeyDown('%d,%d;S',event)\">\n", x0, y0, x1, y1, xc, yc, xc, yc, xc, yc, xc, yc, xc, yc);
+			}
+		}
+	}
+}
+
 void set_up_drawing_environment(void) {
-	cairo_set_source_rgb(cr,1.0,1.0,1.0);
+	if(output == TO_PNG) {
+		cairo_set_source_rgba(cr,1.0,1.0,1.0,1.0);
+	} else {
+		cairo_set_source_rgb(cr,1.0,1.0,1.0);
+	}
 	cairo_paint(cr);
 	
 	cairo_translate(cr, width/2-cell_size/2, height/2-cell_size/2);
 	cairo_scale (cr, cell_size, cell_size);
 	cairo_translate(cr, -center_x, center_y);
 
+	if(output_map) do_output_map();
 	clear(cr);
 	updaters[output](cr);
 }
@@ -159,7 +236,6 @@ int from_socket_render_thread (void* data) {
 	while(sock == NULL) {
 		sock = SDLNet_TCP_Accept(server_sock);
 	}
-	printf("Got connection.\n");
 
 	//Wait for commands
 	char buf;
@@ -191,6 +267,18 @@ void init_video(void) {
 
 void init_video_net(void) {
 	init_video();
+	if(SDLNet_Init() < 0) {
+		fprintf(stderr, "Unable to init SDLNet: %s\n", SDLNet_GetError());
+		exit(2);
+	}
+	atexit(SDLNet_Quit);
+}
+
+void init_net(void) {
+	if(SDL_Init(0) < 0) {
+		fprintf(stderr, "Unable to init SDL: %s\n", SDL_GetError());
+		exit(1);
+	}
 	if(SDLNet_Init() < 0) {
 		fprintf(stderr, "Unable to init SDLNet: %s\n", SDLNet_GetError());
 		exit(2);
@@ -336,6 +424,9 @@ int main(int argc, char **argv) {
 			if(i+1>=argc) printf("no port specified\n");
 			from_port = atoi(argv[++i]);
 		}
+		else if(!strcmp(argv[i], "--output-map")) {
+			output_map = 1;
+		}
 		else if(!strcmp(argv[i], "--help")) {
 			print_help(argv);
 		}
@@ -381,10 +472,13 @@ int main(int argc, char **argv) {
 		input = FROM_FILE;
 	}
 	SDL_Surface *screen, *canvas;
-	if(input==FROM_SOCKET || output==TO_SOCKET) {
-		init_video_net();
-	} else if (output == TO_SDL || output == TO_SDL_PNGS) {
+	if (output == TO_SDL || output == TO_SDL_PNGS) {
 		init_video();
+		if(input==FROM_SOCKET || output==TO_SOCKET) {
+			init_video_net();
+		}
+	} else if(input==FROM_SOCKET || output==TO_SOCKET) {
+			init_net();
 	}
 	if (output == TO_SDL || output == TO_SDL_PNGS) {
 		set_canvas_cairosdl(&screen, &canvas);
@@ -404,7 +498,6 @@ int main(int argc, char **argv) {
 		set_canvas_cairo_svg();
 		atexit(atexit_write_ps);
 	}
-
 	if(input==FROM_SOCKET) {
 		rendert = SDL_CreateThread(from_socket_render_thread, argv);
 	} else if (input==FROM_FILE) {
