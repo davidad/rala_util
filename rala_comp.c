@@ -1,5 +1,6 @@
 #include "rala_comp.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 rala_queue_t* rala_queue_init(void) {
 	rala_queue_t* q = malloc(sizeof(rala_queue_t));
@@ -112,8 +113,12 @@ bool rala_cell_fire(rala_cell_t* cell, rala_queue_t* q, arrow_notify_t arrow_not
 							do_fire = true;
 							if(q != NULL && cell->inputs[i]->from != NULL) {
 								rala_enqueue(q,cell->inputs[i]->from);
-								if(arrow_notify) arrow_notify(cell->inputs[i]);
 							}
+							if(arrow_notify) arrow_notify(cell->inputs[i]);
+							if(q != NULL && cell->outputs[j]->to != NULL) {
+								rala_enqueue(q,cell->outputs[j]->to);
+							}
+							if(arrow_notify) arrow_notify(cell->outputs[j]);
 						}
 					}
 				}
@@ -124,10 +129,11 @@ bool rala_cell_fire(rala_cell_t* cell, rala_queue_t* q, arrow_notify_t arrow_not
 		case CELL_TYPE_COPY_W:
 		case CELL_TYPE_COPY_E:
 			dir = cell->state-CELL_TYPE_COPY_N;
+			if(cell->inputs[dir] == NULL) { return false; }
 			if((data=(cell->inputs[dir]->state-ARROW_TYPE_0))>=0) {
 				for(i=0; i<4; i++) {
 					if(cell->inputs[i] != NULL) {
-						if(i != dir && (control = cell->inputs[i]->state)>=ARROW_TYPE_0) {
+						if(i != dir && (control = (cell->inputs[i]->state - ARROW_TYPE_0))>=0) {
 							result = data;
 							do_fire = true;
 							if(control) {
@@ -144,31 +150,47 @@ bool rala_cell_fire(rala_cell_t* cell, rala_queue_t* q, arrow_notify_t arrow_not
 		case CELL_TYPE_DELETE_W:
 		case CELL_TYPE_DELETE_E:
 			dir = cell->state-CELL_TYPE_DELETE_N;
+			if(cell->inputs[dir] == NULL) { return false; }
 			if((data=(cell->inputs[dir]->state-ARROW_TYPE_0))>=0) {
 				for(i=0; i<4; i++) {
-					if(cell->inputs[i] != NULL) {
-						if(i != dir && (control = cell->inputs[i]->state)>=ARROW_TYPE_0) {
-							control_dir = i;
-							do_fire = true;
-							if(!control) {
-								result = data;
-							}
+					if(i != dir && cell->inputs[i] != NULL && (control = cell->inputs[i]->state - ARROW_TYPE_0)>=0) {
+						control_dir = i;
+						do_fire = true;
+						if(!control) {
+							result = data;
 						}
 					}
 				}
 			}
+			if(!do_fire) {return false;}
 			if(control) {
 				cell->inputs[dir]->state = ARROW_TYPE_X;
 				cell->inputs[control_dir]->state = ARROW_TYPE_X;
+				if(q != NULL && cell->inputs[dir]->from != NULL) {
+					rala_enqueue(q,cell->inputs[dir]->from);
+				}
+				if(q != NULL && cell->inputs[control_dir]->from != NULL) {
+					rala_enqueue(q,cell->inputs[control_dir]->from);
+				}
+				if(arrow_notify) {
+					arrow_notify(cell->inputs[dir]);
+				  arrow_notify(cell->inputs[control_dir]);
+				}
 				return true;
 			}
-			if(!do_fire) {return false;}
 			break;
+	}
+	for(i = 0; i<4; i++) {
+		if(cell->outputs[i] != NULL && cell->outputs[i]->state >= ARROW_TYPE_0) {
+			return false;
+		}
 	}
 	for(i = 0; i<4; i++) {
 		if(cell->outputs[i] != NULL && cell->outputs[i]->state == ARROW_TYPE_X) {
 			cell->outputs[i]->state = ARROW_TYPE_0+result;
-			rala_enqueue(q,cell->outputs[i]->to);
+			if(q != NULL && cell->outputs[i]->to != NULL) {
+				rala_enqueue(q,cell->outputs[i]->to);
+			}
 			if(arrow_notify) arrow_notify(cell->outputs[i]);
 			do_fire = true;
 		}
@@ -179,7 +201,9 @@ bool rala_cell_fire(rala_cell_t* cell, rala_queue_t* q, arrow_notify_t arrow_not
 				if(cell->inputs[i]->state >= ARROW_TYPE_0) {
 					if(remove_dir || i != dir) {
 						cell->inputs[i]->state = ARROW_TYPE_X;
-						rala_enqueue(q,cell->inputs[i]->from);
+						if(q != NULL && cell->inputs[i]->from != NULL) {
+							rala_enqueue(q,cell->inputs[i]->from);
+						}
 						if(arrow_notify) arrow_notify(cell->inputs[i]);
 					}
 				}

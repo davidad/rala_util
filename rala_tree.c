@@ -89,7 +89,7 @@ rala_cell_t* cell_insert_index(cell_tree_t** ct, arrow_tree_t* at, int x, int y,
 		if((*ct)->data.outputs[RALA_IO_WEST]) {
 			(*ct)->data.outputs[RALA_IO_WEST]->from = &((*ct)->data);
 		}
-		(*ct)->data.outputs[RALA_IO_EAST] = arrow_lookup(at, x, y-1, ARROW_DIR_W);
+		(*ct)->data.outputs[RALA_IO_EAST] = arrow_lookup(at, x+1, y, ARROW_DIR_W);
 		if((*ct)->data.outputs[RALA_IO_EAST]) {
 			(*ct)->data.outputs[RALA_IO_EAST]->from = &((*ct)->data);
 		}

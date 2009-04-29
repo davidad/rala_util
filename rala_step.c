@@ -29,8 +29,8 @@ void rala_step_set_arrow_cb(void* v, affine_t t) {
 }
 
 void rala_step_arrow_notify(rala_arrow_t* a) {
-	/*printf("{%d,%d;%s%s}\n",a->x,a->y,arrow_dir_to_str(a->arrow_dir),arrow_type_to_str(a->state));
-	fflush(stdout);*/
+	printf("{%d,%d;%s%s}\n",a->x,a->y,arrow_dir_to_str(a->arrow_dir),arrow_type_to_str(a->state));
+	fflush(stdout);
 	return;
 }
 
@@ -41,15 +41,24 @@ int main(int argc, char** argv) {
 	state.cell_tree = NULL;
 	state.arrow_tree = NULL;
 	state.queue = rala_queue_init();
-	while((buf = fgetc(stdin)) != EOF) {
+	FILE* input = stdin;
+	if(argc > 1) {
+		input = fopen(argv[1], "r");
+		if(input == NULL) {printf("error opening %s\n", argv[1]);exit(1);}
+	}
+	while((buf = fgetc(input)) != EOF) {
 		next_command_char(buf, &state, rala_step_set_cell_cb, rala_step_set_arrow_cb, rala_step_clear, rala_step_updater);
 	}
 	i=0;
 	while(1) {
 		if(rala_cell_fire(rala_dequeue(state.queue),state.queue,rala_step_arrow_notify)) {
 			i++;
+//			usleep(100000);
+		} else {
+			if(state.queue->head == NULL) {
+				break;
+			}
 		}
-		if(i>=10000000) {break;}
 	}
 	return 0;
 }

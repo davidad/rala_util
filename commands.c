@@ -10,6 +10,8 @@ int next_command_char(char c, void* cl, affine_operator_t set_cell_cb, affine_op
 		COMMENT,
 		AFFINE,
 		COMMAND,
+		COPY,
+		DELETE,
 		RANGE_X_MAX,
 		RANGE_X_OFFSET,
 		RANGE_Y_COORD,
@@ -92,14 +94,10 @@ int next_command_char(char c, void* cl, affine_operator_t set_cell_cb, affine_op
 					update_screen(cl);
 					break;
 				case 'c':
-					cell_cb_data.cell_type=CELL_TYPE_COPY_W;
-					affine_operate(transforms,set_cell_cb,&cell_cb_data);
-					update_screen(cl);
+					state = COPY;
 					break;
 				case 'd':
-					cell_cb_data.cell_type=CELL_TYPE_DELETE_W;
-					affine_operate(transforms,set_cell_cb,&cell_cb_data);
-					update_screen(cl);
+					state = DELETE;
 					break;
 				case 'w':
 					cell_cb_data.cell_type=CELL_TYPE_WIRE;
@@ -159,6 +157,62 @@ int next_command_char(char c, void* cl, affine_operator_t set_cell_cb, affine_op
 				default:
 					fprintf(stderr, "Invalid command character %c\n", c);
 					return 1;
+					break;
+			}
+			break;
+		case COPY:
+			switch(c) {
+				case 'N':
+					cell_cb_data.cell_type=CELL_TYPE_COPY_N;
+					affine_operate(transforms,set_cell_cb,&cell_cb_data);
+					update_screen(cl);
+					state = NORMAL;
+					break;
+				case 'S':
+					cell_cb_data.cell_type=CELL_TYPE_COPY_S;
+					affine_operate(transforms,set_cell_cb,&cell_cb_data);
+					update_screen(cl);
+					state = NORMAL;
+					break;
+				case 'W':
+					cell_cb_data.cell_type=CELL_TYPE_COPY_W;
+					affine_operate(transforms,set_cell_cb,&cell_cb_data);
+					update_screen(cl);
+					state = NORMAL;
+					break;
+				case 'E':
+					cell_cb_data.cell_type=CELL_TYPE_COPY_E;
+					affine_operate(transforms,set_cell_cb,&cell_cb_data);
+					update_screen(cl);
+					state = NORMAL;
+					break;
+			}
+			break;
+		case DELETE:
+			switch(c) {
+				case 'N':
+					cell_cb_data.cell_type=CELL_TYPE_DELETE_N;
+					affine_operate(transforms,set_cell_cb,&cell_cb_data);
+					update_screen(cl);
+					state = NORMAL;
+					break;
+				case 'S':
+					cell_cb_data.cell_type=CELL_TYPE_DELETE_S;
+					affine_operate(transforms,set_cell_cb,&cell_cb_data);
+					update_screen(cl);
+					state = NORMAL;
+					break;
+				case 'W':
+					cell_cb_data.cell_type=CELL_TYPE_DELETE_W;
+					affine_operate(transforms,set_cell_cb,&cell_cb_data);
+					update_screen(cl);
+					state = NORMAL;
+					break;
+				case 'E':
+					cell_cb_data.cell_type=CELL_TYPE_DELETE_E;
+					affine_operate(transforms,set_cell_cb,&cell_cb_data);
+					update_screen(cl);
+					state = NORMAL;
 					break;
 			}
 			break;
