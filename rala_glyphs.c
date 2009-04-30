@@ -637,7 +637,6 @@ void clear(void *cl) {
 				cairo_save(cr);
 				cairo_translate(cr,x,y);
 				blank_cell(cr);
-				printf("<!--blank_cell_style: %d-->\n", blank_cell_style);
 				if(blank_cell_style==HOLLOW_STEM) {
 					hollow_stem_cell_glyph(cr);
 				} else if (blank_cell_style==STEM) {
