@@ -108,16 +108,6 @@ void and_gate_glyph(cairo_t *cr) {
 
 	rala_glyph_bg_clear(cr);
 
-	cairo_save(cr);
-	cairo_translate(cr,0.1,0.1);
-	cairo_scale(cr,0.8,0.8);
-
-	if(pat == 0) {
-		pat = cairo_pattern_create_radial (0.27, 0.3, 0.08, 0.2, 0.35, 0.6);
-		cairo_pattern_add_color_stop_rgb (pat, 0, 0.9, 0.9, 0.9);
-		cairo_pattern_add_color_stop_rgb (pat, 1, 1.0, 0.68, 0.68);
-	}
-
 	cairo_new_path(cr);
 	cairo_move_to(cr,0.0,0.0);
 	cairo_line_to(cr,0.0,1.0);
