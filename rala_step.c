@@ -36,24 +36,32 @@ void rala_step_arrow_notify(rala_arrow_t* a) {
 
 int main(int argc, char** argv) {
 	char buf;
-	int i;
+	int i = 1;
+	int delay = 0;
 	rala_step_state_t state;
 	state.cell_tree = NULL;
 	state.arrow_tree = NULL;
 	state.queue = rala_queue_init();
 	FILE* input = stdin;
-	if(argc > 1) {
-		input = fopen(argv[1], "r");
-		if(input == NULL) {printf("error opening %s\n", argv[1]);exit(1);}
+	while(i < argc) {
+		if(!strncmp(argv[i], "--usleep=", 9)) {
+			delay = atoi(strchr(argv[i],'=')+1);
+		} else if ((input = fopen(argv[i],"r")) == NULL) {
+			fprintf(stderr, "Error opening file %s\n", argv[i]);
+			input = stdin;
+		}
+		i++;
 	}
 	while((buf = fgetc(input)) != EOF) {
 		next_command_char(buf, &state, rala_step_set_cell_cb, rala_step_set_arrow_cb, rala_step_clear, rala_step_updater);
 	}
-	i=0;
+	//i=0;
 	while(1) {
 		if(rala_cell_fire(rala_dequeue(state.queue),state.queue,rala_step_arrow_notify)) {
-			i++;
-//			usleep(100000);
+			//i++;
+			if(delay > 0) {
+				usleep(delay);
+			}
 		} else {
 			if(state.queue->head == NULL) {
 				break;

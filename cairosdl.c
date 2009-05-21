@@ -260,8 +260,8 @@ cairosdl_surface_flush_rects (
         if (y + h >= height) h = height - y;
 
         _cairosdl_blit_and_unpremultiply (
-            target_bytes + target_stride*y + x, target_stride,
-            source_bytes + source_stride*y + x, source_stride,
+            target_bytes + target_stride*y + x*4, target_stride,
+            source_bytes + source_stride*y + x*4, source_stride,
             w, h);
     }
 }
@@ -325,8 +325,8 @@ cairosdl_surface_mark_dirty_rects (
 
         if (have_buffers) {
             _cairosdl_blit_and_premultiply (
-                target_bytes + target_stride*y + x, target_stride,
-                source_bytes + source_stride*y + x, source_stride,
+                target_bytes + target_stride*y + x*4, target_stride,
+                source_bytes + source_stride*y + x*4, source_stride,
                 w, h);
         }
 

@@ -132,6 +132,12 @@ void nand_gate_glyph(cairo_t *cr) {
 
 	cairo_save(cr);
 	cairo_translate(cr,0.1,0.1);
+
+	cairo_save(cr);
+	cairo_scale(cr,0.8,0.8);
+	rala_glyph_bg_clear(cr);
+	cairo_restore(cr);
+
 	cairo_scale(cr,0.68,0.8);
 
 	if(pat == 0) {
@@ -140,7 +146,6 @@ void nand_gate_glyph(cairo_t *cr) {
 		cairo_pattern_add_color_stop_rgb (pat, 1, 1.0, 1.0, 0.8);
 	}
 
-	rala_glyph_bg_clear(cr);
 
 	cairo_new_path(cr);
 	cairo_move_to(cr,0.0,0.0);
@@ -346,10 +351,6 @@ void copy_cell_glyph(cairo_t *cr, int rotation) {
 	cairo_scale(cr,0.8,0.8);
 
 	rala_glyph_bg_clear(cr);
-
-	cairo_save(cr);
-	cairo_translate(cr,0.1,0.1);
-	cairo_scale(cr,0.8,0.8);
 
 	cairo_new_path(cr);
 	cairo_arc(cr,0.5,0.5,0.5,((-rotation)*2-5)*M_PI/4,((-rotation)*2+5)*M_PI/4);

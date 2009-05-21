@@ -9,6 +9,7 @@
 #include <cairo/cairo-svg.h>
 #include "rala_glyphs.h"
 #include "rala_glyph_cb.h"
+#include "rala_display.h"
 #include "cairosdl.h"
 #include "commands.h"
 
@@ -29,6 +30,8 @@ FILE* from_file = NULL;
 char* from_hostname = NULL;
 int from_port = 0;
 int cell_size = 40;
+
+struct cl cl;
 
 void set_canvas_cairosdl(SDL_Surface **screen, SDL_Surface **canvas) {
 	if(width==-1) width=1024;
@@ -81,10 +84,19 @@ void set_canvas_cairo_svg() {
 void updater_nop(void *cl) {
 }
 
-void updater_sdl(void *cl) {
-	cairo_t* cr = (cairo_t*) cl;
+void updater_sdl(void *v) {
+	struct cl* cl = (struct cl*)v;
+	cairo_t* cr = cl->cr;
 	SDL_Event event;
-	cairosdl_surface_flush(cairo_get_target(cr));
+	if(cl->w != 0) {
+		double x=cl->x, y=cl->y, w=cl->w, h=cl->h;
+		cairo_user_to_device(cr, &x, &y);
+		cairo_user_to_device_distance(cr, &w, &h);
+		cairosdl_surface_flush_rect(cairo_get_target(cr), x, y, w, h);
+		cl->w = 0;
+	} else {
+		cairosdl_surface_flush(cairo_get_target(cr));
+	}
 	if(SDL_PeepEvents(&event, 1, SDL_PEEKEVENT, SDL_EVENTMASK(SDL_USEREVENT)) == 0) {
 		event.type = SDL_USEREVENT;
 		SDL_PushEvent(&event);
@@ -92,7 +104,7 @@ void updater_sdl(void *cl) {
 }
 
 void updater_sdl_pngs(void* cl) {
-	cairo_t* cr = (cairo_t*) cl;
+	cairo_t* cr = ((struct cl*) cl)->cr;
 	static int filenum = 0;
 	SDL_Event event;
 	cairosdl_surface_flush(cairo_get_target(cr));
@@ -106,7 +118,7 @@ void updater_sdl_pngs(void* cl) {
 }
 
 void updater_ps(void* cl) {
-	cairo_t* cr = (cairo_t*) cl;
+	cairo_t* cr = ((struct cl*) cl)->cr;
 	cairo_copy_page(cr);
 }
 
@@ -212,7 +224,7 @@ void set_up_drawing_environment(void) {
 
 	if(output_map) do_output_map();
 	clear(cr);
-	updaters[output](cr);
+	updaters[output](&cl);
 }
 
 int from_socket_render_thread (void* data) {
@@ -240,7 +252,7 @@ int from_socket_render_thread (void* data) {
 	//Wait for commands
 	char buf;
 	while(SDLNet_TCP_Recv(sock, &buf, 1) > 0) {
-		next_command_char(buf, cr, rala_glyph_set_cell_cb, rala_glyph_set_arrow_cb, clear, updaters[output]);
+		next_command_char(buf, &cl, rala_glyph_set_cell_cb, rala_glyph_set_arrow_cb, clear, updaters[output]);
 	}
 }
 
@@ -250,7 +262,7 @@ int from_file_render_thread (void* data) {
 	//Read commands
 	char buf;
 	while((buf = fgetc(from_file)) != EOF) {
-		next_command_char(buf, cr, rala_glyph_set_cell_cb, rala_glyph_set_arrow_cb, clear, updaters[output]);
+		next_command_char(buf, &cl, rala_glyph_set_cell_cb, rala_glyph_set_arrow_cb, clear, updaters[output]);
 	}
 	if(output != TO_SDL && output != TO_SDL_PNGS) {
 		exit(0);
@@ -498,6 +510,8 @@ int main(int argc, char **argv) {
 		set_canvas_cairo_svg();
 		atexit(atexit_write_ps);
 	}
+	cl.cr = cr;
+	cl.x = cl.y = cl.w = cl.h = 0;
 	if(input==FROM_SOCKET) {
 		rendert = SDL_CreateThread(from_socket_render_thread, argv);
 	} else if (input==FROM_FILE) {
