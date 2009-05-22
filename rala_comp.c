@@ -107,7 +107,7 @@ bool rala_cell_fire(rala_cell_t* cell, rala_queue_t* q, arrow_notify_t arrow_not
 				if(cell->inputs[i] != NULL) {
 					if(cell->inputs[i]->state >= ARROW_TYPE_0) {
 						int j = i ^ 1;
-						if(cell->outputs[j]->state == ARROW_TYPE_X) {
+						if(cell->outputs[j] != NULL && cell->outputs[j]->state == ARROW_TYPE_X) {
 							cell->outputs[j]->state = cell->inputs[i]->state;
 							cell->inputs[i]->state = ARROW_TYPE_X;
 							do_fire = true;
