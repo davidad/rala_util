@@ -38,6 +38,8 @@ void rala_glyph_set_cell_cb(void* v, affine_t t) {
 		cl->y = -(2*t.wy)-1;
 		cl->w = 3;
 		cl->h = 3;
+	} else {
+		cl->w = -1;
 	}
 
 	cairo_save(cr);
@@ -104,6 +106,8 @@ void rala_glyph_set_arrow_cb(void* v, affine_t t) {
 		cl->y = -(2*t.wy)-1;
 		cl->w = 3;
 		cl->h = 3;
+	} else {
+		cl->w = -1;
 	}
 
 	cairo_save(cr);

@@ -88,7 +88,7 @@ void updater_sdl(void *v) {
 	struct cl* cl = (struct cl*)v;
 	cairo_t* cr = cl->cr;
 	SDL_Event event;
-	if(cl->w != 0) {
+	if(cl->w > 0) {
 		double x=cl->x, y=cl->y, w=cl->w, h=cl->h;
 		cairo_user_to_device(cr, &x, &y);
 		cairo_user_to_device_distance(cr, &w, &h);
