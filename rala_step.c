@@ -65,6 +65,7 @@ int main(int argc, char** argv) {
 			}
 		} else {
 			if(state.queue->head == NULL) {
+				fprintf(stderr, "Done!\n");
 				break;
 			}
 		}
