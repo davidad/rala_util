@@ -442,8 +442,8 @@ void arrow_0_glyph(cairo_t *cr) {
 	if(pat_out == 0) {
 		pat_out = cairo_pattern_create_radial (-0.04, 0, ARROW_BODY_RADIUS*(0.7), 0.03, 0, 0.3);
 		cairo_pattern_add_color_stop_rgba(pat_out, 0, 0.3, 0.3, 1.0, 0.5);
-		cairo_pattern_add_color_stop_rgba(pat_out, 0.65, 0.4, 0.4, 0.8, 0.12);
-		cairo_pattern_add_color_stop_rgba(pat_out, 1, 0.0, 0.0, 0.3, 0.0);
+		cairo_pattern_add_color_stop_rgba(pat_out, 0.65, 0.4, 0.4, 0.8, 0.22);
+		cairo_pattern_add_color_stop_rgba(pat_out, 1, 0.0, 0.0, 0.5, 0.0);
 	}
 
 	cairo_save(cr);
@@ -507,8 +507,8 @@ void arrow_1_glyph(cairo_t *cr) {
 	if(pat_out == 0) {
 		pat_out = cairo_pattern_create_radial (0, 0, ARROW_BODY_RADIUS, 0.03, 0, 0.3);
 		cairo_pattern_add_color_stop_rgba(pat_out, 0, 1.0, 0.3, 0.3, 0.3);
-		cairo_pattern_add_color_stop_rgba(pat_out, 0.45, 0.8, 0.2, 0.2, 0.08);
-		cairo_pattern_add_color_stop_rgba(pat_out, 1, 0.3, 0.0, 0.0, 0.0);
+		cairo_pattern_add_color_stop_rgba(pat_out, 0.45, 0.8, 0.2, 0.2, 0.18);
+		cairo_pattern_add_color_stop_rgba(pat_out, 1, 0.5, 0.0, 0.0, 0.0);
 	}
 
 	cairo_save(cr);
