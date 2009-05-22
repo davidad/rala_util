@@ -1,34 +1,9 @@
 #include "rala_enums.h"
+#include "rala_cells.h"
 #include <stdbool.h>
 
 #ifndef _RALA_COMP
 #define _RALA_COMP
-
-#define RALA_IO_NORTH 0
-#define RALA_IO_SOUTH 1
-#define RALA_IO_WEST  2
-#define RALA_IO_EAST  3
-
-typedef struct rala_cell {
-	cell_type_t state;
-
-	int x;
-	int y;
-
-	struct rala_arrow* inputs[4];
-	struct rala_arrow* outputs[4];
-} rala_cell_t;
-
-typedef struct rala_arrow {
-	arrow_type_t state;
-
-	int x;
-	int y;
-	arrow_dir_t arrow_dir;
-
-	struct rala_cell *from;
-	struct rala_cell *to;
-} rala_arrow_t;
 
 typedef struct rala_queue_node {
 	rala_cell_t* cell;

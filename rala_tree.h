@@ -1,5 +1,5 @@
 #include "rala_enums.h"
-#include "rala_comp.h"
+#include "rala_cells.h"
 
 #ifndef _RALA_TREE
 #define _RALA_TREE

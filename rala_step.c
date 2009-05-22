@@ -3,6 +3,7 @@
 #include "rala_enums.h"
 #include "rala_tree.h"
 #include "rala_step.h"
+#include "rala_comp.h"
 #include <stdio.h>
 #include <unistd.h>
 

@@ -1,4 +1,5 @@
 #include "rala_tree.h"
+#include "rala_comp.h"
 
 #ifndef _RALA_STEP
 #define _RALA_STEP
