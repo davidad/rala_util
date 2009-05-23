@@ -7,7 +7,8 @@
 #include <cairo/cairo-ps.h>
 #include <cairo/cairo-pdf.h>
 #include <cairo/cairo-svg.h>
-#include "rala_glyphs.h"
+#include "rala_glyphs_day.h"
+#include "rala_glyphs_night.h"
 #include "rala_glyph_cb.h"
 #include "rala_display.h"
 #include "cairosdl.h"
@@ -30,6 +31,8 @@ FILE* from_file = NULL;
 char* from_hostname = NULL;
 int from_port = 0;
 int cell_size = 40;
+blank_cell_style_t blank_cell_style = HOLLOW_STEM;
+skin_t skin = DAY;
 
 struct cl cl;
 
@@ -212,9 +215,17 @@ void do_output_map(void) {
 
 void set_up_drawing_environment(void) {
 	if(output == TO_PNG) {
-		cairo_set_source_rgba(cr,1.0,1.0,1.0,1.0);
+		if(skin == DAY) {
+			cairo_set_source_rgba(cr,1.0,1.0,1.0,1.0);
+		} else {
+			cairo_set_source_rgba(cr,0.0,0.0,0.0,1.0);
+		}
 	} else {
-		cairo_set_source_rgb(cr,1.0,1.0,1.0);
+		if(skin == DAY) {
+			cairo_set_source_rgb(cr,1.0,1.0,1.0);
+		} else {
+			cairo_set_source_rgb(cr,0.0,0.0,0.0);
+		}
 	}
 	cairo_paint(cr);
 	
@@ -223,8 +234,20 @@ void set_up_drawing_environment(void) {
 	cairo_translate(cr, -center_x, center_y);
 
 	if(output_map) do_output_map();
-	clear(cr);
+	if(skin == DAY) {
+		clear_day(cr);
+	} else {
+		clear_night(cr);
+	}
 	updaters[output](&cl);
+}
+
+void dispatch_command(char buf) {
+	if(skin == DAY) {
+		next_command_char(buf, &cl, rala_glyph_set_cell_cb_day, rala_glyph_set_arrow_cb_day, clear_day, updaters[output]);
+	} else if (skin == NIGHT) {
+		next_command_char(buf, &cl, rala_glyph_set_cell_cb_night, rala_glyph_set_arrow_cb_night, clear_night, updaters[output]);
+	}
 }
 
 int from_socket_render_thread (void* data) {
@@ -252,7 +275,7 @@ int from_socket_render_thread (void* data) {
 	//Wait for commands
 	char buf;
 	while(SDLNet_TCP_Recv(sock, &buf, 1) > 0) {
-		next_command_char(buf, &cl, rala_glyph_set_cell_cb, rala_glyph_set_arrow_cb, clear, updaters[output]);
+		dispatch_command(buf);
 	}
 }
 
@@ -262,7 +285,7 @@ int from_file_render_thread (void* data) {
 	//Read commands
 	char buf;
 	while((buf = fgetc(from_file)) != EOF) {
-		next_command_char(buf, &cl, rala_glyph_set_cell_cb, rala_glyph_set_arrow_cb, clear, updaters[output]);
+		dispatch_command(buf);
 	}
 	if(output != TO_SDL && output != TO_SDL_PNGS) {
 		exit(0);
@@ -344,6 +367,12 @@ int main(int argc, char **argv) {
 		}
 		else if(!strcmp(argv[i], "--blank=none")) {
 			blank_cell_style=NONE;
+		}
+		else if(!strcmp(argv[i], "--skin=day")) {
+			skin=DAY;
+		}
+		else if(!strcmp(argv[i], "--skin=night")) {
+			skin=NIGHT;
 		}
 		else if(!strncmp(argv[i], "--center-x=", 10)) {
 			center_x=2*atoi(strchr(argv[i],'=')+1);
