@@ -50,6 +50,106 @@ rala_arrow_t* arrow_lookup(arrow_tree_t* t, int x, int y, arrow_dir_t arrow_dir)
 	return arrow_lookup_index(t, compute_arrow_index(x, y, arrow_dir));
 }
 
+void cell_update_height(cell_tree_t* root) {
+        int left_height = 0;
+        int right_height = 0;
+        if(root->left_subtree) {left_height = root->left_subtree->height;}
+        if(root->right_subtree) {right_height = root->right_subtree->height;}
+        if(right_height > left_height) {
+                root->height = right_height + 1;
+        } else {
+                root->height = left_height + 1;
+        }
+        root->balance_factor = right_height - left_height;
+}
+
+void cell_left_rotation (cell_tree_t** rootp) {
+	cell_tree_t* old_root = *rootp;
+	cell_tree_t* pivot = old_root->right_subtree;
+	*rootp = pivot;
+	old_root->right_subtree = pivot->left_subtree;
+	pivot->left_subtree = old_root;
+	cell_update_height(old_root);
+	cell_update_height(pivot);
+}
+
+void cell_right_rotation (cell_tree_t** rootp) {
+	cell_tree_t* old_root = *rootp;
+	cell_tree_t* pivot = old_root->left_subtree;
+	*rootp = pivot;
+	old_root->left_subtree = pivot->right_subtree;
+	pivot->right_subtree = old_root;
+	cell_update_height(old_root);
+	cell_update_height(pivot);
+}
+
+void cell_balance(cell_tree_t** root) {
+	if ((*root)->balance_factor == 2 && (*root)->right_subtree->balance_factor == -1) {
+		cell_right_rotation(&(*root)->right_subtree);
+		cell_left_rotation(root);
+	}
+	else if ((*root)->balance_factor == 2 && (*root)->right_subtree->balance_factor == 1) {
+		cell_left_rotation(root);
+	}
+	else if ((*root)->balance_factor == -2 && (*root)->left_subtree->balance_factor == -1) {
+		cell_right_rotation(root);
+	}
+	else if ((*root)->balance_factor == -2 && (*root)->left_subtree->balance_factor == 1) {
+		cell_left_rotation(&(*root)->left_subtree);
+		cell_right_rotation(root);
+	}		
+}
+
+void arrow_update_height(arrow_tree_t* root) {
+        int left_height = 0;
+        int right_height = 0;
+        if(root->left_subtree) {left_height = root->left_subtree->height;}
+        if(root->right_subtree) {right_height = root->right_subtree->height;}
+        if(right_height > left_height) {
+                root->height = right_height + 1;
+        } else {
+                root->height = left_height + 1;
+        }
+        root->balance_factor = right_height - left_height;
+}
+
+void arrow_left_rotation (arrow_tree_t** rootp) {
+	arrow_tree_t* old_root = *rootp;
+	arrow_tree_t* pivot = old_root->right_subtree;
+	*rootp = pivot;
+	old_root->right_subtree = pivot->left_subtree;
+	pivot->left_subtree = old_root;
+	arrow_update_height(old_root);
+	arrow_update_height(pivot);
+}
+
+void arrow_right_rotation (arrow_tree_t** rootp) {
+	arrow_tree_t* old_root = *rootp;
+	arrow_tree_t* pivot = old_root->left_subtree;
+	*rootp = pivot;
+	old_root->left_subtree = pivot->right_subtree;
+	pivot->right_subtree = old_root;
+	arrow_update_height(old_root);
+	arrow_update_height(pivot);
+}
+
+void arrow_balance(arrow_tree_t** root) {
+	if ((*root)->balance_factor == 2 && (*root)->right_subtree->balance_factor == -1) {
+		arrow_right_rotation(&(*root)->right_subtree);
+		arrow_left_rotation(root);
+	}
+	else if ((*root)->balance_factor == 2 && (*root)->right_subtree->balance_factor == 1) {
+		arrow_left_rotation(root);
+	}
+	else if ((*root)->balance_factor == -2 && (*root)->left_subtree->balance_factor == -1) {
+		arrow_right_rotation(root);
+	}
+	else if ((*root)->balance_factor == -2 && (*root)->left_subtree->balance_factor == 1) {
+		arrow_left_rotation(&(*root)->left_subtree);
+		arrow_right_rotation(root);
+	}		
+}
+
 rala_cell_t* cell_insert_index(cell_tree_t** ct, arrow_tree_t* at, int x, int y, index_t index, cell_type_t cell_type) {
 	rala_cell_t* result = NULL;
 	if(*ct == NULL) {
@@ -60,6 +160,8 @@ rala_cell_t* cell_insert_index(cell_tree_t** ct, arrow_tree_t* at, int x, int y,
 		(*ct)->data.state = cell_type;
 		(*ct)->left_subtree = NULL;
 		(*ct)->right_subtree = NULL;
+    (*ct)->height=1;
+    (*ct)->balance_factor=0;
 		(*ct)->data.inputs[RALA_IO_NORTH] = arrow_lookup(at, x, y, ARROW_DIR_N);
 		if((*ct)->data.inputs[RALA_IO_NORTH]) {
 			(*ct)->data.inputs[RALA_IO_NORTH]->to = &((*ct)->data);
@@ -99,10 +201,12 @@ rala_cell_t* cell_insert_index(cell_tree_t** ct, arrow_tree_t* at, int x, int y,
 		return &((*ct)->data);
 	} else if ((*ct)->index < index) {
 		result = cell_insert_index(&((*ct)->right_subtree), at, x, y, index, cell_type);
-		//balance
+    cell_update_height(*ct);
+    cell_balance(ct);
 	} else if ((*ct)->index > index) {
 		result = cell_insert_index(&((*ct)->left_subtree), at, x, y, index, cell_type);
-		//balance
+    cell_update_height(*ct);
+    cell_balance(ct);
 	}
 	return result;
 }
@@ -118,6 +222,8 @@ int arrow_insert_index(arrow_tree_t** at, cell_tree_t* ct, int x, int y, arrow_d
 		(*at)->data.state = arrow_type;
 		(*at)->left_subtree = NULL;
 		(*at)->right_subtree = NULL;
+    (*at)->height=1;
+    (*at)->balance_factor=0;
 
 		(*at)->data.to = cell_lookup(ct, x, y);
 		switch(arrow_dir) {
@@ -164,10 +270,12 @@ int arrow_insert_index(arrow_tree_t** at, cell_tree_t* ct, int x, int y, arrow_d
 		return 1;
 	} else if ((*at)->index < index) {
 		result = arrow_insert_index(&((*at)->right_subtree), ct, x, y, arrow_dir, index, arrow_type);
-		//balance
+    arrow_update_height(*at);
+    arrow_balance(at);
 	} else if ((*at)->index > index) {
 		result = arrow_insert_index(&((*at)->left_subtree), ct, x, y, arrow_dir, index, arrow_type);
-		//balance
+    arrow_update_height(*at);
+    arrow_balance(at);
 	}
 	return result;
 }

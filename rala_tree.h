@@ -11,6 +11,9 @@ typedef struct cell_tree_node {
 
 	rala_cell_t data;
 
+  int height;
+  int balance_factor;
+
 	struct cell_tree_node* left_subtree;
 	struct cell_tree_node* right_subtree;
 } cell_tree_t;
@@ -19,6 +22,9 @@ typedef struct arrow_tree_node {
 	index_t index;
 
 	rala_arrow_t data;
+
+  int height;
+  int balance_factor;
 
 	struct arrow_tree_node* left_subtree;
 	struct arrow_tree_node* right_subtree;
