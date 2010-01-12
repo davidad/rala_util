@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
 		i++;
 	}
 	while((buf = fgetc(input)) != EOF) {
-		next_command_char(buf, &state, rala_avr_load_set_cell_cb, rala_avr_load_set_arrow_cb, rala_avr_load_clear, rala_avr_load_updater);
+		next_command_char(buf, &state, rala_avr_load_set_cell_cb, rala_avr_load_set_arrow_cb, rala_avr_load_clear, rala_avr_load_updater, NULL);
 	}
 	int dy;
 	unsigned char* data=malloc(28*h);

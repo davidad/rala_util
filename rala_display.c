@@ -23,6 +23,7 @@ int center_y = 0;
 enum output_type {TO_SDL, TO_SDL_PNGS, TO_PNG, TO_PS, TO_EPS, TO_PDF, TO_SVG, TO_SOCKET, TO_FILE, OUTPUT_TYPE_LENGTH} output = TO_SDL;
 enum input_type {FROM_SOCKET, FROM_FILE, INPUT_TYPE_LENGTH} input = FROM_SOCKET;
 int output_map = 0;
+int use_frames = 0;
 FILE* to_file = NULL;
 char* to_filename = NULL;
 char* to_hostname = NULL;
@@ -243,10 +244,18 @@ void set_up_drawing_environment(void) {
 }
 
 void dispatch_command(char buf) {
+  updater_t frame, normal;
+  if(use_frames) {
+    frame = updaters[output];
+    normal = updater_nop;
+  } else {
+    frame = updater_nop;
+    normal = updaters[output];
+  }
 	if(skin == DAY) {
-		next_command_char(buf, &cl, rala_glyph_set_cell_cb_day, rala_glyph_set_arrow_cb_day, clear_day, updaters[output]);
+		next_command_char(buf, &cl, rala_glyph_set_cell_cb_day, rala_glyph_set_arrow_cb_day, clear_day, normal, frame);
 	} else if (skin == NIGHT) {
-		next_command_char(buf, &cl, rala_glyph_set_cell_cb_night, rala_glyph_set_arrow_cb_night, clear_night, updaters[output]);
+		next_command_char(buf, &cl, rala_glyph_set_cell_cb_night, rala_glyph_set_arrow_cb_night, clear_night, normal, frame);
 	}
 }
 
@@ -464,6 +473,9 @@ int main(int argc, char **argv) {
 			from_hostname = argv[++i];
 			if(i+1>=argc) printf("no port specified\n");
 			from_port = atoi(argv[++i]);
+		}
+		else if(!strcmp(argv[i], "--use-frames")) {
+			use_frames = 1;
 		}
 		else if(!strcmp(argv[i], "--output-map")) {
 			output_map = 1;
