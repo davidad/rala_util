@@ -44,6 +44,7 @@ int main(int argc, char** argv) {
 	state.cell_tree = NULL;
 	state.arrow_tree = NULL;
 	state.queue = rala_queue_init();
+  rala_queue_t* back_queue = rala_queue_init();
 	FILE* input = stdin;
 	while(i < argc) {
 		if(!strncmp(argv[i], "--usleep=", 9)) {
@@ -57,20 +58,28 @@ int main(int argc, char** argv) {
 		i++;
 	}
 	while((buf = fgetc(input)) != EOF) {
-		next_command_char(buf, &state, rala_step_set_cell_cb, rala_step_set_arrow_cb, rala_step_clear, rala_step_updater);
+		next_command_char(buf, &state, rala_step_set_cell_cb, rala_step_set_arrow_cb, rala_step_clear, rala_step_updater, NULL);
 	}
 	//i=0;
 	if(wait==1) {fgetc(stdin);}
+  printf("%%FRAME%%\n");
 	while(1) {
-		if(rala_cell_fire(rala_dequeue(state.queue),state.queue,rala_step_arrow_notify)) {
+		if(rala_cell_fire(rala_dequeue(state.queue),back_queue,rala_step_arrow_notify)) {
 			//i++;
 			if(delay > 0) {
 				usleep(delay);
 			}
 		} else {
 			if(state.queue->head == NULL) {
-				fprintf(stderr, "Done!\n");
-				break;
+        if(back_queue->head == NULL) {
+          fprintf(stderr, "Done!\n");
+          break;
+        } else {
+          printf("%%FRAME%%\n");
+          rala_queue_t* temp = state.queue;
+          state.queue = back_queue;
+          back_queue = temp;
+        }
 			}
 		}
 	}
