@@ -1,6 +1,8 @@
 #include "rala_comp.h"
 #include <stdlib.h>
 #include <stdio.h>
+//#include <errno.h>
+//#include <unistd.h>
 
 rala_queue_t* rala_queue_init(void) {
 	rala_queue_t* q = malloc(sizeof(rala_queue_t));
@@ -33,11 +35,17 @@ rala_cell_t* rala_dequeue(rala_queue_t* q) {
 	return cell;
 }
 
-bool rala_cell_fire(rala_cell_t* cell, rala_queue_t* q, arrow_notify_t arrow_notify) {
+bool rala_cell_fire(rala_cell_t* cell, rala_queue_t* q, arrow_notify_t arrow_notify, bool side_effects_on) {
 	int i, result, dir, control_dir, control, data;
+	int return_v;
 	bool touch_inputs = true;
 	bool remove_dir = true;
 	bool do_fire = false;
+	bool morefiledata = false;
+	int file_size;
+	int previous_file_location;
+	char byte_buffer;
+	//printf("Random Cell FD: %i\n", cell->extra_information);
 	if(cell == NULL) {return false;}
 	switch(cell->state) {
 		case CELL_TYPE_AND:
@@ -75,6 +83,48 @@ bool rala_cell_fire(rala_cell_t* cell, rala_queue_t* q, arrow_notify_t arrow_not
 					}
 				}
 			}
+			break;
+		case CELL_TYPE_SINK:
+			result = 0;
+			break;
+		case CELL_TYPE_FILE:
+		      // For the file cell, extra_information is used to hold the filedescriptor of the file to stream from
+		    //printf("Cell FD: %i\n", cell->extra_information);
+            //errno = 0;
+            //return_v = fread(&byte_buffer, sizeof(char), 1, cell->extra_information);
+
+            if (cell->extra_information == NULL) {
+                return false;
+            }
+
+              // Warning: Don't do this unless side effects are enabled
+            if (side_effects_on) {
+                return_v = fgetc(cell->extra_information);
+            } else {
+                return false;
+            }
+
+            //previous_file_location = ftell(cell->extra_information);
+            //fseek(cell->extra_information, 0, SEEK_END); // seek to end of file
+            //file_size = ftell(cell->extra_information); // get current file pointer
+            //fseek(cell->extra_information, previous_file_location, SEEK_SET); // seek back to where we were in the file
+
+            //morefiledata = false;
+            do_fire = true;
+            //if (file_size > previous_file_location) {
+            if (return_v == EOF || return_v == 13 || return_v == 10) {
+                return false;
+                //morefiledata = true;
+                //do_fire = true;
+            }
+
+		    //printf( "Return value: %i\n", retval );
+		    //printf( "Errno: %i\n", errno );
+		    //fprintf( stderr, "Result: %i\n", byte_buffer );
+		    //fprintf( stderr, "Result: %i\n", byte_buffer );
+			result = (return_v-48)&1;
+			//fprintf( stderr, "%i ", return_v );
+			//fflush( stderr );
 			break;
 		case CELL_TYPE_NAND:
 			result = 1;
@@ -195,6 +245,14 @@ bool rala_cell_fire(rala_cell_t* cell, rala_queue_t* q, arrow_notify_t arrow_not
 			do_fire = true;
 		}
 	}
+
+      //Special handling for the sink cell to endlessly clear inputs
+	if (cell->state == CELL_TYPE_SINK) do_fire = true;
+    //if (cell->state == CELL_TYPE_FILE && morefiledata) {
+        //rala_enqueue(q,cell);
+        //return false;
+    //}
+
 	if(do_fire) {
 		for(i = 0; i<4; i++) {
 			if(cell->inputs[i] != NULL) {

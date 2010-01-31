@@ -7,6 +7,8 @@
 typedef struct {
 	void* cl;
 	cell_type_t cell_type;
+	  // Extra information to be passed through
+	void *extra_information;
 } set_cell_cb_t;
 
 typedef struct {

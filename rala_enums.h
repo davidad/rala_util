@@ -31,7 +31,9 @@ typedef enum {
 	CELL_TYPE_DELETE_N,
 	CELL_TYPE_DELETE_S,
 	CELL_TYPE_DELETE_W,
-	CELL_TYPE_DELETE_E
+	CELL_TYPE_DELETE_E,
+	CELL_TYPE_SINK,
+	CELL_TYPE_FILE
 } cell_type_t;
 
 char* arrow_dir_to_str(arrow_dir_t);

@@ -14,6 +14,10 @@ typedef struct rala_cell {
 	int x;
 	int y;
 
+      // Extra information for whatever cells need it
+      // File cells use extra_information to store the file descriptor they read from
+    void *extra_information;
+
 	struct rala_arrow* inputs[4];
 	struct rala_arrow* outputs[4];
 } rala_cell_t;
