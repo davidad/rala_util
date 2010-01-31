@@ -1,7 +1,7 @@
 #include "commands.h"
 #include <errno.h>
 
-int next_command_char(char c, void* cl, affine_operator_t set_cell_cb, affine_operator_t set_arrow_cb, clear_t clear, updater_t update_screen) {
+int next_command_char(char c, void* cl, affine_operator_t set_cell_cb, affine_operator_t set_arrow_cb, clear_t clear, updater_t update_screen, updater_t update_frame) {
 	static enum {
 		NORMAL,
 		ARROW,
@@ -47,6 +47,10 @@ int next_command_char(char c, void* cl, affine_operator_t set_cell_cb, affine_op
 				if(!strcmp(command_buf, "clear") || !strcmp(command_buf, "CLEAR")) {
 					clear(cl);
 					update_screen(cl);
+				} else if(!strcmp(command_buf, "frame") || !strcmp(command_buf, "FRAME")) {
+          if(update_frame != NULL) {
+            update_frame(cl);
+          }
 				}
 				state = NORMAL;
 			}
@@ -280,7 +284,7 @@ int next_command_char(char c, void* cl, affine_operator_t set_cell_cb, affine_op
 					break;
 				default:
 					state = NORMAL;
-					next_command_char(c,cl,set_cell_cb,set_arrow_cb,clear,update_screen);
+					next_command_char(c,cl,set_cell_cb,set_arrow_cb,clear,update_screen,update_frame);
 					break;
 			}
 			state = NORMAL;
@@ -440,7 +444,7 @@ int next_command_char(char c, void* cl, affine_operator_t set_cell_cb, affine_op
 					break;
 				default:
 					state = NORMAL;
-					next_command_char(c,cl,set_cell_cb,set_arrow_cb,clear,update_screen);
+					next_command_char(c,cl,set_cell_cb,set_arrow_cb,clear,update_screen,update_frame);
 					break;
 			}
 			break;
@@ -479,7 +483,7 @@ int next_command_char(char c, void* cl, affine_operator_t set_cell_cb, affine_op
 					break;
 				default:
 					state = NORMAL;
-					next_command_char(c,cl,set_cell_cb,set_arrow_cb,clear,update_screen);
+					next_command_char(c,cl,set_cell_cb,set_arrow_cb,clear,update_screen,update_frame);
 					break;
 			}
 			break;
@@ -509,7 +513,7 @@ int next_command_char(char c, void* cl, affine_operator_t set_cell_cb, affine_op
 					break;
 				default:
 					state = NORMAL;
-					next_command_char(c,cl,set_cell_cb,set_arrow_cb,clear,update_screen);
+					next_command_char(c,cl,set_cell_cb,set_arrow_cb,clear,update_screen,update_frame);
 					break;
 			}
 			break;
@@ -555,7 +559,7 @@ int next_command_char(char c, void* cl, affine_operator_t set_cell_cb, affine_op
 					break;
 				default:
 					state = NORMAL;
-					next_command_char(c,cl,set_cell_cb,set_arrow_cb,clear,update_screen);
+					next_command_char(c,cl,set_cell_cb,set_arrow_cb,clear,update_screen,update_frame);
 					break;
 			}
 			break;

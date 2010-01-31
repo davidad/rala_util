@@ -20,7 +20,7 @@ typedef struct {
 typedef void (*updater_t)(void*);
 typedef void (*clear_t)(void*);
 
-int next_command_char(char c, void* cl, affine_operator_t set_cell_cb, affine_operator_t set_arrow_cb, clear_t clear, updater_t update_screen);
+int next_command_char(char c, void* cl, affine_operator_t set_cell_cb, affine_operator_t set_arrow_cb, clear_t clear, updater_t update_screen, updater_t update_frame);
 
 arrow_dir_t arrow_rotate(affine_t t, arrow_dir_t arrow_dir);
 #endif
