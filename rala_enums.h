@@ -5,14 +5,16 @@ typedef enum {
 	ARROW_DIR_N,
 	ARROW_DIR_S,
 	ARROW_DIR_W,
-	ARROW_DIR_E
+	ARROW_DIR_E,
+  ARROW_DIR_MAX
 } arrow_dir_t;
 
 typedef enum {
 	ARROW_TYPE_NONE,
 	ARROW_TYPE_X,
 	ARROW_TYPE_0,
-	ARROW_TYPE_1
+	ARROW_TYPE_1,
+  ARROW_TYPE_MAX
 } arrow_type_t;
 
 typedef enum {
@@ -31,7 +33,10 @@ typedef enum {
 	CELL_TYPE_DELETE_N,
 	CELL_TYPE_DELETE_S,
 	CELL_TYPE_DELETE_W,
-	CELL_TYPE_DELETE_E
+	CELL_TYPE_DELETE_E,
+	CELL_TYPE_SINK,
+	CELL_TYPE_FILE,
+  CELL_TYPE_MAX
 } cell_type_t;
 
 char* arrow_dir_to_str(arrow_dir_t);

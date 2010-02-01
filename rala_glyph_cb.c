@@ -1,10 +1,12 @@
 #include "rala_glyph_cb.h"
 #include "rala_glyphs.h"
 #include "rala_display.h"
+#include "rala_enums.h"
 #include "int_affine.h"
 #include "commands.h"
 #include <cairo/cairo.h>
 #include <math.h>
+#include <stdio.h>
 
 void setup_arrow(cairo_t* cr, arrow_dir_t arrow_dir) {
 	switch(arrow_dir) {
@@ -32,6 +34,19 @@ void setup_arrow(cairo_t* cr, arrow_dir_t arrow_dir) {
 void rala_glyph_set_cell_cb_day(void* v, affine_t t) {
 	struct cl* cl = (struct cl*)(((set_cell_cb_t*)v)->cl);
 	cairo_t *cr = cl->cr;
+  static cairo_pattern_t* memoized_pattern[CELL_TYPE_MAX];
+  static int cell_width, cell_height; //in pixels
+  static cairo_matrix_t scale_matrix;
+
+  //Make sure width and height are the same as before
+  double temp_width = 1.0, temp_height = 1.0;
+  cairo_user_to_device_distance(cr, &temp_width, &temp_height);
+  if((int)temp_width != cell_width || (int)temp_height != cell_height) {
+    cell_width = (int)temp_width;
+    cell_height = (int)temp_height;
+    memset(memoized_pattern, 0, sizeof(cairo_pattern_t*)*CELL_TYPE_MAX);
+    cairo_matrix_init_scale(&scale_matrix, temp_width, temp_height);
+  }
 
 	//Mark dirty
 	if(cl->w == 0) {
@@ -45,61 +60,84 @@ void rala_glyph_set_cell_cb_day(void* v, affine_t t) {
 
 	cairo_save(cr);
 	cairo_translate(cr,2*t.wx, -2*t.wy);
-	switch(((set_cell_cb_t*)v)->cell_type) {
-		case CELL_TYPE_BLANK:
-			break;
-		case CELL_TYPE_STEM:
-			stem_cell_glyph_day(cr);
-			break;
-		case CELL_TYPE_AND:
-			and_gate_glyph_day(cr);
-			break;
-		case CELL_TYPE_OR:
-			or_gate_glyph_day(cr);
-			break;
-		case CELL_TYPE_XOR:
-			xor_gate_glyph_day(cr);
-			break;
-		case CELL_TYPE_NAND:
-			nand_gate_glyph_day(cr);
-			break;
-		case CELL_TYPE_WIRE:
-			wire_cell_glyph_day(cr);
-			break;
-		case CELL_TYPE_CROSSOVER:
-			crossover_cell_glyph_day(cr);
-			break;
-		case CELL_TYPE_COPY_E:
-			copy_cell_glyph_day(cr,2);
-			break;
-		case CELL_TYPE_COPY_N:
-			copy_cell_glyph_day(cr,3);
-			break;
-		case CELL_TYPE_COPY_W:
-			copy_cell_glyph_day(cr,0);
-			break;
-		case CELL_TYPE_COPY_S:
-			copy_cell_glyph_day(cr,1);
-			break;
-		case CELL_TYPE_DELETE_E:
-			delete_cell_glyph_day(cr,2);
-			break;
-		case CELL_TYPE_DELETE_N:
-			delete_cell_glyph_day(cr,3);
-			break;
-		case CELL_TYPE_DELETE_W:
-			delete_cell_glyph_day(cr,0);
-			break;
-		case CELL_TYPE_DELETE_S:
-			delete_cell_glyph_day(cr,1);
-			break;
-	}
+  cell_type_t cell_type = ((set_cell_cb_t*)v)->cell_type;
+  if(!memoized_pattern[cell_type]) {
+    cairo_surface_t* memoizer_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, cell_width, cell_height);
+    cairo_t* m_cr = cairo_create(memoizer_surface);
+    cairo_scale(m_cr, cell_width, cell_height);
+    switch(cell_type) {
+      case CELL_TYPE_BLANK:
+        break;
+      case CELL_TYPE_STEM:
+        stem_cell_glyph_day(m_cr);
+        break;
+      case CELL_TYPE_AND:
+        and_gate_glyph_day(m_cr);
+        break;
+      case CELL_TYPE_OR:
+        or_gate_glyph_day(m_cr);
+        break;
+      case CELL_TYPE_XOR:
+        xor_gate_glyph_day(m_cr);
+        break;
+      case CELL_TYPE_NAND:
+        nand_gate_glyph_day(m_cr);
+        break;
+      case CELL_TYPE_WIRE:
+        wire_cell_glyph_day(m_cr);
+        break;
+      case CELL_TYPE_CROSSOVER:
+        crossover_cell_glyph_day(m_cr);
+        break;
+      case CELL_TYPE_COPY_E:
+        copy_cell_glyph_day(m_cr,2);
+        break;
+      case CELL_TYPE_COPY_N:
+        copy_cell_glyph_day(m_cr,3);
+        break;
+      case CELL_TYPE_COPY_W:
+        copy_cell_glyph_day(m_cr,0);
+        break;
+      case CELL_TYPE_COPY_S:
+        copy_cell_glyph_day(m_cr,1);
+        break;
+      case CELL_TYPE_DELETE_E:
+        delete_cell_glyph_day(m_cr,2);
+        break;
+      case CELL_TYPE_DELETE_N:
+        delete_cell_glyph_day(m_cr,3);
+        break;
+      case CELL_TYPE_DELETE_W:
+        delete_cell_glyph_day(m_cr,0);
+        break;
+      case CELL_TYPE_DELETE_S:
+        delete_cell_glyph_day(m_cr,1);
+        break;
+    }
+    memoized_pattern[cell_type] = cairo_pattern_create_for_surface(memoizer_surface);
+    cairo_pattern_set_matrix(memoized_pattern[cell_type], &scale_matrix);
+  }
+  cairo_set_source(cr, memoized_pattern[cell_type]);
+  cairo_paint(cr);
 	cairo_restore(cr);
 }
 
 void rala_glyph_set_arrow_cb_day(void* v, affine_t t) {
 	struct cl* cl = (struct cl*)(((set_cell_cb_t*)v)->cl);
 	cairo_t *cr = cl->cr;
+  static cairo_pattern_t* memoized_pattern[ARROW_TYPE_MAX];
+  static int cell_width, cell_height; //in pixels
+  static cairo_matrix_t scale_matrix;
+
+  //Make sure width and height are the same as before
+  double temp_width = 1.0, temp_height = 1.0;
+  cairo_user_to_device_distance(cr, &temp_width, &temp_height);
+  if((int)temp_width != cell_width || (int)temp_height != cell_height) {
+    cell_width = (int)temp_width;
+    cell_height = (int)temp_height;
+    memset(memoized_pattern, 0, sizeof(cairo_pattern_t*)*ARROW_TYPE_MAX);
+    cairo_matrix_init_scale(&scale_matrix, temp_width, temp_height);
+  }
 
 	//Mark dirty
 	if(cl->w == 0) {
@@ -114,26 +152,49 @@ void rala_glyph_set_arrow_cb_day(void* v, affine_t t) {
 	cairo_save(cr);
 	cairo_translate(cr,2*t.wx, -2*t.wy);
 	setup_arrow(cr,arrow_rotate(t, ((set_arrow_cb_t*)v)->arrow_dir));
-	switch(((set_arrow_cb_t*)v)->arrow_type) {
-		case ARROW_TYPE_NONE:
-			arrow_none_glyph_day(cr);
-			break;
-		case ARROW_TYPE_X:
-			arrow_x_glyph_day(cr);
-			break;
-		case ARROW_TYPE_0:
-			arrow_0_glyph_day(cr);
-			break;
-		case ARROW_TYPE_1:
-			arrow_1_glyph_day(cr);
-			break;
-	}
+  arrow_type_t arrow_type = ((set_arrow_cb_t*)v)->arrow_type;
+  if(!memoized_pattern[arrow_type]) {
+    cairo_surface_t* memoizer_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, cell_width, cell_height);
+    cairo_t* m_cr = cairo_create(memoizer_surface);
+    cairo_scale(m_cr, cell_width, cell_height);
+    switch(arrow_type) {
+      case ARROW_TYPE_NONE:
+        arrow_none_glyph_day(m_cr);
+        break;
+      case ARROW_TYPE_X:
+        arrow_x_glyph_day(m_cr);
+        break;
+      case ARROW_TYPE_0:
+        arrow_0_glyph_day(m_cr);
+        break;
+      case ARROW_TYPE_1:
+        arrow_1_glyph_day(m_cr);
+        break;
+    }
+    memoized_pattern[arrow_type] = cairo_pattern_create_for_surface(memoizer_surface);
+    cairo_pattern_set_matrix(memoized_pattern[arrow_type], &scale_matrix);
+  }
+  cairo_set_source(cr, memoized_pattern[arrow_type]);
+  cairo_paint(cr);
 	cairo_restore(cr);
 }
 
 void rala_glyph_set_cell_cb_night(void* v, affine_t t) {
 	struct cl* cl = (struct cl*)(((set_cell_cb_t*)v)->cl);
 	cairo_t *cr = cl->cr;
+  static cairo_pattern_t* memoized_pattern[CELL_TYPE_MAX];
+  static int cell_width, cell_height; //in pixels
+  static cairo_matrix_t scale_matrix;
+
+  //Make sure width and height are the same as before
+  double temp_width = 1.0, temp_height = 1.0;
+  cairo_user_to_device_distance(cr, &temp_width, &temp_height);
+  if((int)temp_width != cell_width || (int)temp_height != cell_height) {
+    cell_width = (int)temp_width;
+    cell_height = (int)temp_height;
+    memset(memoized_pattern, 0, sizeof(cairo_pattern_t*)*CELL_TYPE_MAX);
+    cairo_matrix_init_scale(&scale_matrix, temp_width, temp_height);
+  }
 
 	//Mark dirty
 	if(cl->w == 0) {
@@ -147,61 +208,84 @@ void rala_glyph_set_cell_cb_night(void* v, affine_t t) {
 
 	cairo_save(cr);
 	cairo_translate(cr,2*t.wx, -2*t.wy);
-	switch(((set_cell_cb_t*)v)->cell_type) {
-		case CELL_TYPE_BLANK:
-			break;
-		case CELL_TYPE_STEM:
-			stem_cell_glyph_night(cr);
-			break;
-		case CELL_TYPE_AND:
-			and_gate_glyph_night(cr);
-			break;
-		case CELL_TYPE_OR:
-			or_gate_glyph_night(cr);
-			break;
-		case CELL_TYPE_XOR:
-			xor_gate_glyph_night(cr);
-			break;
-		case CELL_TYPE_NAND:
-			nand_gate_glyph_night(cr);
-			break;
-		case CELL_TYPE_WIRE:
-			wire_cell_glyph_night(cr);
-			break;
-		case CELL_TYPE_CROSSOVER:
-			crossover_cell_glyph_night(cr);
-			break;
-		case CELL_TYPE_COPY_E:
-			copy_cell_glyph_night(cr,2);
-			break;
-		case CELL_TYPE_COPY_N:
-			copy_cell_glyph_night(cr,3);
-			break;
-		case CELL_TYPE_COPY_W:
-			copy_cell_glyph_night(cr,0);
-			break;
-		case CELL_TYPE_COPY_S:
-			copy_cell_glyph_night(cr,1);
-			break;
-		case CELL_TYPE_DELETE_E:
-			delete_cell_glyph_night(cr,2);
-			break;
-		case CELL_TYPE_DELETE_N:
-			delete_cell_glyph_night(cr,3);
-			break;
-		case CELL_TYPE_DELETE_W:
-			delete_cell_glyph_night(cr,0);
-			break;
-		case CELL_TYPE_DELETE_S:
-			delete_cell_glyph_night(cr,1);
-			break;
-	}
+  cell_type_t cell_type = ((set_cell_cb_t*)v)->cell_type;
+  if(!memoized_pattern[cell_type]) {
+    cairo_surface_t* memoizer_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, cell_width, cell_height);
+    cairo_t* m_cr = cairo_create(memoizer_surface);
+    cairo_scale(m_cr, cell_width, cell_height);
+    switch(cell_type) {
+      case CELL_TYPE_BLANK:
+        break;
+      case CELL_TYPE_STEM:
+        stem_cell_glyph_night(m_cr);
+        break;
+      case CELL_TYPE_AND:
+        and_gate_glyph_night(m_cr);
+        break;
+      case CELL_TYPE_OR:
+        or_gate_glyph_night(m_cr);
+        break;
+      case CELL_TYPE_XOR:
+        xor_gate_glyph_night(m_cr);
+        break;
+      case CELL_TYPE_NAND:
+        nand_gate_glyph_night(m_cr);
+        break;
+      case CELL_TYPE_WIRE:
+        wire_cell_glyph_night(m_cr);
+        break;
+      case CELL_TYPE_CROSSOVER:
+        crossover_cell_glyph_night(m_cr);
+        break;
+      case CELL_TYPE_COPY_E:
+        copy_cell_glyph_night(m_cr,2);
+        break;
+      case CELL_TYPE_COPY_N:
+        copy_cell_glyph_night(m_cr,3);
+        break;
+      case CELL_TYPE_COPY_W:
+        copy_cell_glyph_night(m_cr,0);
+        break;
+      case CELL_TYPE_COPY_S:
+        copy_cell_glyph_night(m_cr,1);
+        break;
+      case CELL_TYPE_DELETE_E:
+        delete_cell_glyph_night(m_cr,2);
+        break;
+      case CELL_TYPE_DELETE_N:
+        delete_cell_glyph_night(m_cr,3);
+        break;
+      case CELL_TYPE_DELETE_W:
+        delete_cell_glyph_night(m_cr,0);
+        break;
+      case CELL_TYPE_DELETE_S:
+        delete_cell_glyph_night(m_cr,1);
+        break;
+    }
+    memoized_pattern[cell_type] = cairo_pattern_create_for_surface(memoizer_surface);
+    cairo_pattern_set_matrix(memoized_pattern[cell_type], &scale_matrix);
+  }
+  cairo_set_source(cr, memoized_pattern[cell_type]);
+  cairo_paint(cr);
 	cairo_restore(cr);
 }
 
 void rala_glyph_set_arrow_cb_night(void* v, affine_t t) {
 	struct cl* cl = (struct cl*)(((set_cell_cb_t*)v)->cl);
 	cairo_t *cr = cl->cr;
+  static cairo_pattern_t* memoized_pattern[ARROW_TYPE_MAX];
+  static int cell_width, cell_height; //in pixels
+  static cairo_matrix_t scale_matrix;
+
+  //Make sure width and height are the same as before
+  double temp_width = 1.0, temp_height = 1.0;
+  cairo_user_to_device_distance(cr, &temp_width, &temp_height);
+  if((int)temp_width != cell_width || (int)temp_height != cell_height) {
+    cell_width = (int)temp_width;
+    cell_height = (int)temp_height;
+    memset(memoized_pattern, 0, sizeof(cairo_pattern_t*)*ARROW_TYPE_MAX);
+    cairo_matrix_init_scale(&scale_matrix, temp_width, temp_height);
+  }
 
 	//Mark dirty
 	if(cl->w == 0) {
@@ -216,19 +300,29 @@ void rala_glyph_set_arrow_cb_night(void* v, affine_t t) {
 	cairo_save(cr);
 	cairo_translate(cr,2*t.wx, -2*t.wy);
 	setup_arrow(cr,arrow_rotate(t, ((set_arrow_cb_t*)v)->arrow_dir));
-	switch(((set_arrow_cb_t*)v)->arrow_type) {
-		case ARROW_TYPE_NONE:
-			arrow_none_glyph_night(cr);
-			break;
-		case ARROW_TYPE_X:
-			arrow_x_glyph_night(cr);
-			break;
-		case ARROW_TYPE_0:
-			arrow_0_glyph_night(cr);
-			break;
-		case ARROW_TYPE_1:
-			arrow_1_glyph_night(cr);
-			break;
-	}
+  arrow_type_t arrow_type = ((set_arrow_cb_t*)v)->arrow_type;
+  if(!memoized_pattern[arrow_type]) {
+    cairo_surface_t* memoizer_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, cell_width, cell_height);
+    cairo_t* m_cr = cairo_create(memoizer_surface);
+    cairo_scale(m_cr, cell_width, cell_height);
+    switch(arrow_type) {
+      case ARROW_TYPE_NONE:
+        arrow_none_glyph_night(m_cr);
+        break;
+      case ARROW_TYPE_X:
+        arrow_x_glyph_night(m_cr);
+        break;
+      case ARROW_TYPE_0:
+        arrow_0_glyph_night(m_cr);
+        break;
+      case ARROW_TYPE_1:
+        arrow_1_glyph_night(m_cr);
+        break;
+    }
+    memoized_pattern[arrow_type] = cairo_pattern_create_for_surface(memoizer_surface);
+    cairo_pattern_set_matrix(memoized_pattern[arrow_type], &scale_matrix);
+  }
+  cairo_set_source(cr, memoized_pattern[arrow_type]);
+  cairo_paint(cr);
 	cairo_restore(cr);
 }

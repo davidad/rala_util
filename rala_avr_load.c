@@ -17,7 +17,7 @@ void rala_avr_load_clear(void* cl) {
 void rala_avr_load_set_cell_cb(void* v, affine_t t) {
 	set_cell_cb_t* arg = (set_cell_cb_t*)v;
 	rala_avr_load_state_t* state = (rala_avr_load_state_t*)arg->cl;
-	cell_insert(&state->cell_tree, state->arrow_tree, t.wx, t.wy, arg->cell_type);
+	cell_insert(&state->cell_tree, state->arrow_tree, t.wx, t.wy, arg->cell_type, arg->extra_information);
 }
 void rala_avr_load_set_arrow_cb(void* v, affine_t t) {
 	set_arrow_cb_t* arg = (set_arrow_cb_t*)v;
@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
 		i++;
 	}
 	while((buf = fgetc(input)) != EOF) {
-		next_command_char(buf, &state, rala_avr_load_set_cell_cb, rala_avr_load_set_arrow_cb, rala_avr_load_clear, rala_avr_load_updater);
+		next_command_char(buf, &state, rala_avr_load_set_cell_cb, rala_avr_load_set_arrow_cb, rala_avr_load_clear, rala_avr_load_updater, NULL);
 	}
 	int dy;
 	unsigned char* data=malloc(28*h);

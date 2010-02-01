@@ -1,6 +1,7 @@
 #include "commands.h"
+#include <errno.h>
 
-int next_command_char(char c, void* cl, affine_operator_t set_cell_cb, affine_operator_t set_arrow_cb, clear_t clear, updater_t update_screen) {
+int next_command_char(char c, void* cl, affine_operator_t set_cell_cb, affine_operator_t set_arrow_cb, clear_t clear, updater_t update_screen, updater_t update_frame) {
 	static enum {
 		NORMAL,
 		ARROW,
@@ -16,16 +17,20 @@ int next_command_char(char c, void* cl, affine_operator_t set_cell_cb, affine_op
 		RANGE_Y_COORD,
 		RANGE_Y_MIN,
 		RANGE_Y_MAX,
-		RANGE_Y_OFFSET
+		RANGE_Y_OFFSET,
+		GETPATH
 	} state = NORMAL;
 	static arrow_dir_t arrow_dir;
 	static int x_coord, y_coord, x_coord_sign, y_coord_sign;
 	static affine_stack_t* transforms = NULL;
 	static char command_buf[256];
+	static char path_buf[256];
+	static int path_index = 0;
 	static int command_buf_i;
 	if(transforms == NULL) transforms = affine_init();
 	affine_par_t *par_iter;
 	int x, y;
+	int filedescriptor;
 	set_cell_cb_t cell_cb_data;
 	set_arrow_cb_t arrow_cb_data;
 	cell_cb_data.cl = arrow_cb_data.cl = cl;
@@ -42,8 +47,34 @@ int next_command_char(char c, void* cl, affine_operator_t set_cell_cb, affine_op
 				if(!strcmp(command_buf, "clear") || !strcmp(command_buf, "CLEAR")) {
 					clear(cl);
 					update_screen(cl);
+				} else if(!strcmp(command_buf, "frame") || !strcmp(command_buf, "FRAME")) {
+          if(update_frame != NULL) {
+            update_frame(cl);
+          }
 				}
 				state = NORMAL;
+			}
+			break;
+		case GETPATH:
+			  // I chose some silly character to delimit paths. Not necessarily a good idea.
+			if (c == '`') {
+				path_buf[path_index] = 0;
+				fprintf( stderr, "Path to open: %s\n", path_buf );
+				errno = 0;
+				filedescriptor = fopen(path_buf, "r");
+				fprintf( stderr, "File descriptor: %i\n", filedescriptor );
+				if (filedescriptor == NULL) {
+				    fprintf( stderr, "Error: %i\n", errno );
+				}
+				path_index = 0;
+				cell_cb_data.cell_type=CELL_TYPE_FILE;
+				cell_cb_data.extra_information = filedescriptor;
+				affine_operate(transforms,set_cell_cb,&cell_cb_data);
+				state = NORMAL;
+			}
+			else {
+				path_buf[path_index] = c;
+				path_index++;
 			}
 			break;
 		case NORMAL:
@@ -97,6 +128,15 @@ int next_command_char(char c, void* cl, affine_operator_t set_cell_cb, affine_op
 					break;
 				case 'd':
 					state = DELETE;
+					break;
+				case 'v':
+					cell_cb_data.cell_type=CELL_TYPE_SINK;
+					affine_operate(transforms,set_cell_cb,&cell_cb_data);
+					update_screen(cl);
+					break;
+				case 'f':
+					update_screen(cl);
+					state = GETPATH;
 					break;
 				case 'w':
 					cell_cb_data.cell_type=CELL_TYPE_WIRE;
@@ -244,7 +284,7 @@ int next_command_char(char c, void* cl, affine_operator_t set_cell_cb, affine_op
 					break;
 				default:
 					state = NORMAL;
-					next_command_char(c,cl,set_cell_cb,set_arrow_cb,clear,update_screen);
+					next_command_char(c,cl,set_cell_cb,set_arrow_cb,clear,update_screen,update_frame);
 					break;
 			}
 			state = NORMAL;
@@ -404,7 +444,7 @@ int next_command_char(char c, void* cl, affine_operator_t set_cell_cb, affine_op
 					break;
 				default:
 					state = NORMAL;
-					next_command_char(c,cl,set_cell_cb,set_arrow_cb,clear,update_screen);
+					next_command_char(c,cl,set_cell_cb,set_arrow_cb,clear,update_screen,update_frame);
 					break;
 			}
 			break;
@@ -443,7 +483,7 @@ int next_command_char(char c, void* cl, affine_operator_t set_cell_cb, affine_op
 					break;
 				default:
 					state = NORMAL;
-					next_command_char(c,cl,set_cell_cb,set_arrow_cb,clear,update_screen);
+					next_command_char(c,cl,set_cell_cb,set_arrow_cb,clear,update_screen,update_frame);
 					break;
 			}
 			break;
@@ -473,7 +513,7 @@ int next_command_char(char c, void* cl, affine_operator_t set_cell_cb, affine_op
 					break;
 				default:
 					state = NORMAL;
-					next_command_char(c,cl,set_cell_cb,set_arrow_cb,clear,update_screen);
+					next_command_char(c,cl,set_cell_cb,set_arrow_cb,clear,update_screen,update_frame);
 					break;
 			}
 			break;
@@ -519,7 +559,7 @@ int next_command_char(char c, void* cl, affine_operator_t set_cell_cb, affine_op
 					break;
 				default:
 					state = NORMAL;
-					next_command_char(c,cl,set_cell_cb,set_arrow_cb,clear,update_screen);
+					next_command_char(c,cl,set_cell_cb,set_arrow_cb,clear,update_screen,update_frame);
 					break;
 			}
 			break;

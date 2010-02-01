@@ -22,6 +22,6 @@ rala_cell_t* rala_dequeue(rala_queue_t* q);
 //bool rala_cell_ready(rala_cell_t* cell);
 
 typedef void (*arrow_notify_t)(rala_arrow_t*);
-bool rala_cell_fire(rala_cell_t* cell, rala_queue_t* q, arrow_notify_t arrow_notify);
+bool rala_cell_fire(rala_cell_t* cell, rala_queue_t* q, arrow_notify_t arrow_notify, bool side_effects_on);
 
 #endif

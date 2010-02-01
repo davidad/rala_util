@@ -11,6 +11,7 @@ char* arrow_type_to_str(arrow_type_t t) {
 }
 
 char* cell_type_to_str(cell_type_t t) {
-	static char* strs[] = {"", "s", "a", "o", "x", "n", "w", "C", "cN", "cS", "cW", "cE", "dN", "dS", "dW", "dE"};
+	static char* strs[] = {"", "s", "a", "o", "x", "n", "w", "C", "cN", "cS", "cW", "cE", "dN", "dS", "dW", "dE", "v", "w"};
 	return strs[t];
 }
+

@@ -26,8 +26,8 @@ index_t compute_arrow_index(int x, int y, arrow_dir_t arrow_dir) {
 	return cell_index*4+arrow_dir;
 }
 
-rala_cell_t* cell_insert(cell_tree_t** ct, arrow_tree_t* at, int x, int y, cell_type_t cell_type) {
-	return cell_insert_index(ct, at, x, y, compute_cell_index(x,y), cell_type);
+rala_cell_t* cell_insert(cell_tree_t** ct, arrow_tree_t* at, int x, int y, cell_type_t cell_type, void *extra_information) {
+	return cell_insert_index(ct, at, x, y, compute_cell_index(x,y), cell_type, extra_information);
 }
 
 int arrow_insert(arrow_tree_t** at, cell_tree_t* ct, int x, int y, arrow_dir_t arrow_dir, arrow_type_t arrow_type) {
@@ -150,7 +150,7 @@ void arrow_balance(arrow_tree_t** root) {
 	}		
 }
 
-rala_cell_t* cell_insert_index(cell_tree_t** ct, arrow_tree_t* at, int x, int y, index_t index, cell_type_t cell_type) {
+rala_cell_t* cell_insert_index(cell_tree_t** ct, arrow_tree_t* at, int x, int y, index_t index, cell_type_t cell_type, void *extra_information) {
 	rala_cell_t* result = NULL;
 	if(*ct == NULL) {
 		*ct = malloc(sizeof(cell_tree_t));
@@ -158,6 +158,7 @@ rala_cell_t* cell_insert_index(cell_tree_t** ct, arrow_tree_t* at, int x, int y,
 		(*ct)->data.x = x;
 		(*ct)->data.y = y;
 		(*ct)->data.state = cell_type;
+		(*ct)->data.extra_information = extra_information;
 		(*ct)->left_subtree = NULL;
 		(*ct)->right_subtree = NULL;
     (*ct)->height=1;
@@ -197,14 +198,15 @@ rala_cell_t* cell_insert_index(cell_tree_t** ct, arrow_tree_t* at, int x, int y,
 		}
 		result = &((*ct)->data);
 	} else if ((*ct)->index == index) {
-		(*ct)->data.state=cell_type;
+		(*ct)->data.state = cell_type;
+		(*ct)->data.extra_information = extra_information;
 		return &((*ct)->data);
 	} else if ((*ct)->index < index) {
-		result = cell_insert_index(&((*ct)->right_subtree), at, x, y, index, cell_type);
+		result = cell_insert_index(&((*ct)->right_subtree), at, x, y, index, cell_type, extra_information);
     cell_update_height(*ct);
     cell_balance(ct);
 	} else if ((*ct)->index > index) {
-		result = cell_insert_index(&((*ct)->left_subtree), at, x, y, index, cell_type);
+		result = cell_insert_index(&((*ct)->left_subtree), at, x, y, index, cell_type, extra_information);
     cell_update_height(*ct);
     cell_balance(ct);
 	}
