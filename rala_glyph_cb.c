@@ -113,6 +113,8 @@ void rala_glyph_set_cell_cb_day(void* v, affine_t t) {
       case CELL_TYPE_DELETE_S:
         delete_cell_glyph_day(m_cr,1);
         break;
+      default:
+        break;
     }
     memoized_pattern[cell_type] = cairo_pattern_create_for_surface(memoizer_surface);
     cairo_pattern_set_matrix(memoized_pattern[cell_type], &scale_matrix);
@@ -261,6 +263,8 @@ void rala_glyph_set_cell_cb_night(void* v, affine_t t) {
       case CELL_TYPE_DELETE_S:
         delete_cell_glyph_night(m_cr,1);
         break;
+      default:
+        break;
     }
     memoized_pattern[cell_type] = cairo_pattern_create_for_surface(memoizer_surface);
     cairo_pattern_set_matrix(memoized_pattern[cell_type], &scale_matrix);
@@ -408,6 +412,30 @@ void rala_glyph_set_cell_cb_scott(void* v, affine_t t) {
         break;
       case CELL_TYPE_DELETE_S:
         delete_cell_glyph_scott(m_cr,1);
+        break;
+      case CELL_TYPE_PUT_E:
+        put_cell_glyph_scott(m_cr,2);
+        break;
+      case CELL_TYPE_PUT_N:
+        put_cell_glyph_scott(m_cr,3);
+        break;
+      case CELL_TYPE_PUT_W:
+        put_cell_glyph_scott(m_cr,0);
+        break;
+      case CELL_TYPE_PUT_S:
+        put_cell_glyph_scott(m_cr,1);
+        break;
+      case CELL_TYPE_GET_E:
+        get_cell_glyph_scott(m_cr,2);
+        break;
+      case CELL_TYPE_GET_N:
+        get_cell_glyph_scott(m_cr,3);
+        break;
+      case CELL_TYPE_GET_W:
+        get_cell_glyph_scott(m_cr,0);
+        break;
+      case CELL_TYPE_GET_S:
+        get_cell_glyph_scott(m_cr,1);
         break;
     }
     memoized_pattern[cell_type] = cairo_pattern_create_for_surface(memoizer_surface);

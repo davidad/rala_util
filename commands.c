@@ -12,6 +12,8 @@ int next_command_char(char c, void* cl, affine_operator_t set_cell_cb, affine_op
 		COMMAND,
 		COPY,
 		DELETE,
+    PUT,
+    GET,
 		RANGE_X_MAX,
 		RANGE_X_OFFSET,
 		RANGE_Y_COORD,
@@ -128,6 +130,12 @@ int next_command_char(char c, void* cl, affine_operator_t set_cell_cb, affine_op
 					break;
 				case 'd':
 					state = DELETE;
+					break;
+        case 'p':
+          state = PUT;
+					break;
+        case 'g':
+          state = GET;
 					break;
 				case 'v':
 					cell_cb_data.cell_type=CELL_TYPE_SINK;
@@ -249,6 +257,62 @@ int next_command_char(char c, void* cl, affine_operator_t set_cell_cb, affine_op
 					break;
 				case 'E':
 					cell_cb_data.cell_type=CELL_TYPE_DELETE_E;
+					affine_operate(transforms,set_cell_cb,&cell_cb_data);
+					update_screen(cl);
+					state = NORMAL;
+					break;
+			}
+			break;
+		case PUT:
+			switch(c) {
+				case 'N':
+					cell_cb_data.cell_type=CELL_TYPE_PUT_N;
+					affine_operate(transforms,set_cell_cb,&cell_cb_data);
+					update_screen(cl);
+					state = NORMAL;
+					break;
+				case 'S':
+					cell_cb_data.cell_type=CELL_TYPE_PUT_S;
+					affine_operate(transforms,set_cell_cb,&cell_cb_data);
+					update_screen(cl);
+					state = NORMAL;
+					break;
+				case 'W':
+					cell_cb_data.cell_type=CELL_TYPE_PUT_W;
+					affine_operate(transforms,set_cell_cb,&cell_cb_data);
+					update_screen(cl);
+					state = NORMAL;
+					break;
+				case 'E':
+					cell_cb_data.cell_type=CELL_TYPE_PUT_E;
+					affine_operate(transforms,set_cell_cb,&cell_cb_data);
+					update_screen(cl);
+					state = NORMAL;
+					break;
+			}
+			break;
+		case GET:
+			switch(c) {
+				case 'N':
+					cell_cb_data.cell_type=CELL_TYPE_GET_N;
+					affine_operate(transforms,set_cell_cb,&cell_cb_data);
+					update_screen(cl);
+					state = NORMAL;
+					break;
+				case 'S':
+					cell_cb_data.cell_type=CELL_TYPE_GET_S;
+					affine_operate(transforms,set_cell_cb,&cell_cb_data);
+					update_screen(cl);
+					state = NORMAL;
+					break;
+				case 'W':
+					cell_cb_data.cell_type=CELL_TYPE_GET_W;
+					affine_operate(transforms,set_cell_cb,&cell_cb_data);
+					update_screen(cl);
+					state = NORMAL;
+					break;
+				case 'E':
+					cell_cb_data.cell_type=CELL_TYPE_GET_E;
 					affine_operate(transforms,set_cell_cb,&cell_cb_data);
 					update_screen(cl);
 					state = NORMAL;

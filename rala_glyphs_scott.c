@@ -388,6 +388,94 @@ void copy_cell_glyph_scott(cairo_t *cr, int rotation) {
 	cairo_restore(cr);
 }
 
+void get_cell_glyph_scott(cairo_t *cr, int rotation) {
+	static cairo_pattern_t *pat = 0;
+
+	cairo_save(cr);
+	cairo_translate(cr,0.1,0.1);
+	cairo_scale(cr,0.8,0.8);
+  
+
+	if(pat == 0) {
+		pat = cairo_pattern_create_radial (0.27, 0.3, 0.08, 0.2, 0.35, 0.6);
+		cairo_pattern_add_color_stop_rgb (pat, 0, 0.9, 0.9, 0.9);
+		cairo_pattern_add_color_stop_rgb (pat, 1, 0.98, 0.75, 0.02);
+	}
+
+	rala_glyph_bg_clear_scott(cr);
+
+  double d = 1.0;
+  double a = d/4;
+  double b = sqrt(3) * a;
+
+  cairo_save(cr);
+  cairo_translate(cr,0.5,0.5);
+  cairo_rotate(cr,rotation*(M_PI/2));
+	cairo_new_path(cr);
+  cairo_move_to(cr,0.1,2*a);
+  cairo_line_to(cr,b,a);
+  cairo_line_to(cr,b,-a);
+  cairo_line_to(cr,0.1,-2*a);
+  cairo_line_to(cr,-b,-a);
+  cairo_line_to(cr,-b,a);
+	cairo_close_path(cr);
+  cairo_restore(cr);
+
+	cairo_set_source (cr, pat);
+
+	cairo_fill_preserve (cr);
+
+	cairo_set_source_rgb(cr,0.0,0.0,0.0);
+	cairo_set_line_width(cr,0.07);
+	cairo_set_line_join(cr,CAIRO_LINE_JOIN_ROUND);
+	cairo_stroke(cr);
+	
+	cairo_restore(cr);
+}
+
+void put_cell_glyph_scott(cairo_t *cr, int rotation) {
+	static cairo_pattern_t *pat = 0;
+
+	cairo_save(cr);
+	cairo_translate(cr,0.1,0.1);
+	cairo_scale(cr,0.8,0.8);
+
+	if(pat == 0) {
+		pat = cairo_pattern_create_radial (0.27, 0.3, 0.08, 0.2, 0.35, 0.6);
+		cairo_pattern_add_color_stop_rgb (pat, 0, 0.9, 0.9, 0.9);
+		cairo_pattern_add_color_stop_rgb (pat, 1, 0.0, 0.48, 0.57);
+	}
+
+	rala_glyph_bg_clear_scott(cr);
+
+  double t = 1.0/3.0;
+  double s = 1.0/6.0;
+	cairo_new_path(cr);
+  cairo_move_to(cr,t,1.0-s);
+  cairo_line_to(cr,t+s,1.0);
+  cairo_line_to(cr,t*2,1.0-s);
+  cairo_line_to(cr,t*2,t*2);
+  cairo_line_to(cr,t*2+s,t*2);
+  cairo_line_to(cr,1.0,t+s);
+  cairo_line_to(cr,t*2+s,t);
+  cairo_line_to(cr,t*2,t);
+  cairo_line_to(cr,t*2,0.0);
+  cairo_line_to(cr,t+s,s);
+  cairo_line_to(cr,t,0.0);
+	cairo_close_path(cr);
+
+	cairo_set_source (cr, pat);
+
+	cairo_fill_preserve (cr);
+
+	cairo_set_source_rgb(cr,0.0,0.0,0.0);
+	cairo_set_line_width(cr,0.07);
+	cairo_set_line_join(cr,CAIRO_LINE_JOIN_ROUND);
+	cairo_stroke(cr);
+	
+	cairo_restore(cr);
+}
+
 void arrow_none_glyph_scott(cairo_t *cr) {
 	cairo_save(cr);
 	cairo_translate(cr,ARROW_POS_X,ARROW_POS_Y);
